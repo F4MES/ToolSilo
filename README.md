@@ -2,6 +2,11 @@
 
 ToolSilo er en app designet til at administrere og udleje værktøjer. Denne guide hjælper dig med at opsætte og køre projektet lokalt.
 
+Link til repo: 
+   ```bash
+   https://github.com/F4MES/ToolSilo.git
+   ```
+
 ## Forudsætninger
 
 Før du begynder:
