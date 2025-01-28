@@ -243,7 +243,7 @@ struct RegisterView: View {
             )
         }
         .onAppear {
-            // Hent associations fra Firestore
+            // Hent associations fra Firestore, fx:
             Task {
                 do {
                     let fetched = try await AssociationHandler.shared.fetchAssociations(insertAllAtTop: false)
