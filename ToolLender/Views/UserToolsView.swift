@@ -42,7 +42,6 @@ struct UserToolsView: View {
     /// Henter værktøjer fra Firestore for en specifik ejer
     private func fetchTools() async {
         do {
-            // Omdøbt for overskuelighed
             self.tools = try await ToolHandler.shared.fetchToolsByOwner(ownerUID: ownerUID)
         } catch {
             print("Error fetching tools: \(error.localizedDescription)")

@@ -80,4 +80,67 @@ class ToolHandler {
             return cached
         }
     }
-} 
+
+    // MARK: - Create Operations
+    /// Uploader et nyt værktøj til Firestore
+    func uploadTool(
+        name: String,
+        description: String,
+        pricePerDay: Double,
+        imageURL: String?,
+        ownerUID: String,
+        category: String
+    ) async throws -> Tool {
+        let toolRef = Firestore.firestore().collection("tools").document()
+        
+        let toolData: [String: Any] = [
+            "id": toolRef.documentID,
+            "name": name,
+            "description": description,
+            "pricePerDay": pricePerDay,
+            "imageURL": imageURL ?? "",
+            "ownerUID": ownerUID,
+            "category": category,
+            "isOnHold": false,
+            "timestamp": FieldValue.serverTimestamp()
+        ]
+        
+        try await toolRef.setData(toolData)
+        return try await fetchTool(documentID: toolRef.documentID)
+    }
+
+    /// Henter et specifikt værktøj fra Firestore
+    func fetchTool(documentID: String) async throws -> Tool {
+        let document = try await Firestore.firestore()
+            .collection("tools")
+            .document(documentID)
+            .getDocument()
+        
+        guard let data = document.data() else {
+            throw NSError(domain: "ToolError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Document data not found"])
+        }
+        
+        return try decodeTool(from: data, documentID: documentID)
+    }
+
+    private func decodeTool(from data: [String: Any], documentID: String) throws -> Tool {
+        guard let name = data["name"] as? String,
+              let description = data["description"] as? String,
+              let ownerUID = data["ownerUID"] as? String,
+              let category = data["category"] as? String else {
+            throw NSError(domain: "ToolError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid tool data format"])
+        }
+        
+        return Tool(
+            id: documentID,
+            name: name,
+            description: description,
+            imageURL: data["imageURL"] as? String,
+            ownerUID: ownerUID,
+            pricePerDay: data["pricePerDay"] as? Double,
+            category: category,
+            isOnHold: data["isOnHold"] as? Bool ?? false,
+            timestamp: data["timestamp"] as? Date
+        )
+    }
+}

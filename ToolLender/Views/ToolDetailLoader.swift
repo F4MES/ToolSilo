@@ -3,7 +3,6 @@ import FirebaseFirestore
 import Inject
 
 struct ToolDetailLoader: View {
-    @ObserveInjection var inject // Bruges til hot reloading
     let tool: Tool // Det værktøj, der skal vises
     @State private var ownerName = "" // Ejerens navn
     @State private var ownerEmail = "" // Ejerens email
@@ -18,7 +17,6 @@ struct ToolDetailLoader: View {
             ownerPhoneNumber: ownerPhoneNumber,
             ownerAddress: ownerAddress
         )
-        .enableInjection() // Aktiverer hot reloading
         .task {
             await fetchOwnerInfo() // Henter ejeroplysninger ved visning
         }

@@ -15,6 +15,7 @@ struct UploadToolView: View {
     @State private var showSuccessAlert = false
     @Binding var userAssociation: String
     @State private var associations: [String] = []
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 20) {
@@ -83,12 +84,12 @@ struct UploadToolView: View {
             Spacer()
         }
         .padding()
-        .alert(isPresented: $showSuccessAlert) {
-            Alert(
-                title: Text("Success"),
-                message: Text("Your item has been uploaded successfully."),
-                dismissButton: .default(Text("OK"))
-            )
+        .alert("Success", isPresented: $showSuccessAlert) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("Your item has been uploaded successfully.")
         }
         .onAppear {
             Task {
@@ -112,56 +113,53 @@ struct UploadToolView: View {
     }
 
     private func uploadTool() async {
+        guard validateInputs() else { return }
+        
+        do {
+            let imageUrl = try await uploadImage()
+            try await saveToolToFirestore(imageUrl: imageUrl)
+            showSuccessAlert = true
+            resetForm()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func validateInputs() -> Bool {
         guard !toolName.isEmpty, !toolDescription.isEmpty else {
             errorMessage = "Please fill in all fields."
-            return
+            return false
         }
+        return true
+    }
 
+    private func uploadImage() async throws -> String? {
         guard let currentUser = Auth.auth().currentUser else {
             errorMessage = "You must be logged in to upload."
-            return
+            return nil
         }
 
         let price = Double(pricePerDay) ?? 0.0
         if let imageData = selectedImageData {
-            if let urlString = await uploadImageToFirebaseStorage(imageData) {
-                saveToolToFirestore(imageURL: urlString, price: price, ownerUID: currentUser.uid, category: userAssociation)
-            } else {
-                errorMessage = "Failed to upload image to Firebase Storage."
-            }
+            return await uploadImageToFirebaseStorage(imageData)
         } else {
-            saveToolToFirestore(imageURL: nil, price: price, ownerUID: currentUser.uid, category: userAssociation)
+            return nil
         }
     }
 
-    private func saveToolToFirestore(imageURL: String?, price: Double, ownerUID: String, category: String) {
-        let db = Firestore.firestore()
-        let toolData: [String: Any] = [
-            "name": toolName,
-            "description": toolDescription,
-            "imageURL": imageURL ?? "",
-            "ownerUID": ownerUID,
-            "pricePerDay": price,
-            "category": category,
-            "timestamp": Timestamp()
-        ]
-
-        db.collection("tools").addDocument(data: toolData) { error in
-            if let error = error {
-                errorMessage = "Failed to save item: \(error.localizedDescription)"
-            } else {
-                toolName = ""
-                toolDescription = ""
-                pricePerDay = ""
-                selectedImageData = nil
-                imageUrl = nil
-                showSuccessAlert = true
-                
-                Task {
-                    await ToolHandler.shared.fetchAllToolsCachedFirst()
-                }
-            }
-        }
+    private func saveToolToFirestore(imageUrl: String?) async throws {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        let price = Double(pricePerDay) ?? 0.0
+        
+        _ = try await ToolHandler.shared.uploadTool(
+            name: toolName,
+            description: toolDescription,
+            pricePerDay: price,
+            imageURL: imageUrl,
+            ownerUID: userId,
+            category: userAssociation
+        )
     }
 
     private func uploadImageToFirebaseStorage(_ imageData: Data) async -> String? {
@@ -189,5 +187,14 @@ struct UploadToolView: View {
             print("Error fetching associations: \(error.localizedDescription)")
             self.associations = LocalCacheManager.shared.loadAssociations()
         }
+    }
+
+    private func resetForm() {
+        toolName = ""
+        toolDescription = ""
+        pricePerDay = ""
+        selectedImageData = nil
+        imageUrl = nil
+        errorMessage = ""
     }
 }
