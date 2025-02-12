@@ -270,20 +270,14 @@ struct ToolListView: View {
     }
 
     private func deleteConfirmedTool() {
-        guard let tool = toolToDelete else { return }
-        let db = Firestore.firestore()
-
-        db.collection("tools").document(tool.id).delete { error in
-            if let error = error {
-                print("Error deleting item: \(error.localizedDescription)")
-            } else {
-                if let index = tools.firstIndex(where: { $0.id == tool.id }) {
-                    tools.remove(at: index)
-                    filterTools(by: searchText)
-                }
-            }
+    guard let tool = toolToDelete else { return }
+    Task {
+        do {
+            try await ToolHandler.shared.deleteTool(tool)
+            await fetchTools()
+        } catch {
+            print("Error deleting tool: \(error.localizedDescription)")
         }
-
-        toolToDelete = nil
     }
+} 
 }
