@@ -302,31 +302,17 @@ struct ProfileView: View {
         }
     }
 
-    private func addNewAssociation() {
-        let db = Firestore.firestore()
-        let newAssociationName = newAssociation.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !newAssociationName.isEmpty else { return }
-
-        db.collection("associations").whereField("name", isEqualTo: newAssociationName).getDocuments { snapshot, error in
-            if let error = error {
-                print("Error checking association: \(error.localizedDescription)")
-                return
-            }
-
-            if snapshot?.isEmpty == true {
-                db.collection("associations").addDocument(data: ["name": newAssociationName]) { error in
-                    if let error = error {
-                        print("Error adding association: \(error.localizedDescription)")
-                    } else {
-                        associations.append(newAssociationName)
-                    }
-                }
-            } else {
-                print("Association already exists.")
-            }
+private func addNewAssociation() {
+    let newAssociationName = newAssociation.trimmingCharacters(in: .whitespacesAndNewlines)
+    Task {
+        do {
+            try await AssociationHandler.shared.addAssociation(name: newAssociationName)
+            associations.append(newAssociationName)
+        } catch {
+            print("Error adding association: \(error.localizedDescription)")
         }
     }
+} 
 
     // MARK: - Brugeroplysninger
     private func fetchUserName() async {

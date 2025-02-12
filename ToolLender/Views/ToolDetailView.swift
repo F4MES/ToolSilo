@@ -149,26 +149,12 @@ struct ToolDetailView: View {
     }
 
     // Henter andre værktøjer fra Firestore for den angivne ejer
-    private func fetchOtherTools() async {
-        let db = Firestore.firestore()
-
-        do {
-            let snapshot = try await db.collection("tools").whereField("ownerUID", isEqualTo: tool.ownerUID).getDocuments()
-            self.otherTools = snapshot.documents.compactMap { doc in
-                let fetchedTool = Tool(
-                    id: doc.documentID,
-                    name: doc["name"] as? String ?? "",
-                    description: doc["description"] as? String ?? "",
-                    imageURL: doc["imageURL"] as? String,
-                    ownerUID: doc["ownerUID"] as? String ?? "Unknown",
-                    pricePerDay: doc["pricePerDay"] as? Double,
-                    category: doc["category"] as? String ?? "",
-                    isOnHold: doc["isOnHold"] as? Bool ?? false
-                )
-                return fetchedTool.id != tool.id ? fetchedTool : nil // Undgå at inkludere det aktuelle værktøj
-            }
-        } catch {
-            print("Error fetching other tools: \(error.localizedDescription)")
-        }
+   private func fetchOtherTools() async {
+    do {
+        self.otherTools = try await ToolHandler.shared.fetchToolsByOwner(ownerUID: tool.ownerUID)
+            .filter { $0.id != tool.id }
+    } catch {
+        print("Error fetching tools: \(error.localizedDescription)")
     }
+} 
 }

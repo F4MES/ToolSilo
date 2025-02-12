@@ -224,20 +224,16 @@ struct ToolListView: View {
         filterTools(by: searchText)
     }
 
-    private func toggleHoldStatus(for tool: Tool) {
-        let db = Firestore.firestore()
-        let newStatus = !tool.isOnHold
-        db.collection("tools").document(tool.id).updateData(["isOnHold": newStatus]) { error in
-            if let error = error {
-                print("Error updating hold status: \(error.localizedDescription)")
-            } else {
-                if let index = tools.firstIndex(where: { $0.id == tool.id }) {
-                    tools[index].isOnHold = newStatus
-                    filterTools(by: searchText)
-                }
-            }
+private func toggleHoldStatus(for tool: Tool) {
+    Task {
+        do {
+            try await ToolHandler.shared.toggleHoldStatus(for: tool)
+            await fetchTools()
+        } catch {
+            print("Error toggling hold status: \(error.localizedDescription)")
         }
     }
+} 
 
     private func filterTools(by query: String) {
         if userAssociation == "All" {

@@ -33,23 +33,13 @@ class ToolHandler {
 
     /// Henter værktøjer fra Firestore, hvor feltet "ownerUID" matcher den angivne UID.
     func fetchToolsByOwner(ownerUID: String) async throws -> [Tool] {
-        let db = Firestore.firestore()
-        let snapshot = try await db.collection("tools")
+        let snapshot = try await Firestore.firestore().collection("tools")
             .whereField("ownerUID", isEqualTo: ownerUID)
             .getDocuments()
-
-        return snapshot.documents.map { doc in
-            Tool(
-                id: doc.documentID,
-                name: doc["name"] as? String ?? "",
-                description: doc["description"] as? String ?? "",
-                imageURL: doc["imageURL"] as? String,
-                ownerUID: doc["ownerUID"] as? String ?? "Unknown",
-                pricePerDay: doc["pricePerDay"] as? Double,
-                category: doc["category"] as? String ?? "",
-                isOnHold: doc["isOnHold"] as? Bool ?? false,
-                timestamp: (doc["timestamp"] as? Timestamp)?.dateValue()
-            )
+        
+        return try snapshot.documents.map { doc in
+            let data = doc.data()
+            return try decodeTool(from: data, documentID: doc.documentID)
         }
     }
 
@@ -57,8 +47,9 @@ class ToolHandler {
     /// Toggler 'isOnHold' for det angivne værktøj i Firestore.
     func toggleHoldStatus(for tool: Tool) async throws {
         let db = Firestore.firestore()
-        let newStatus = !tool.isOnHold
-        try await db.collection("tools").document(tool.id).updateData(["isOnHold": newStatus])
+        try await db.collection("tools").document(tool.id).updateData([
+            "isOnHold": !tool.isOnHold
+        ])
     }
 
     // MARK: - Slet
@@ -124,11 +115,17 @@ class ToolHandler {
     }
 
     private func decodeTool(from data: [String: Any], documentID: String) throws -> Tool {
-        guard let name = data["name"] as? String,
-              let description = data["description"] as? String,
-              let ownerUID = data["ownerUID"] as? String,
-              let category = data["category"] as? String else {
-            throw NSError(domain: "ToolError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid tool data format"])
+        guard 
+            let name = data["name"] as? String,
+            let description = data["description"] as? String,
+            let ownerUID = data["ownerUID"] as? String,
+            let category = data["category"] as? String
+        else {
+            throw NSError(
+                domain: "ToolError", 
+                code: 1, 
+                userInfo: [NSLocalizedDescriptionKey: "Invalid tool data format"]
+            )
         }
         
         return Tool(

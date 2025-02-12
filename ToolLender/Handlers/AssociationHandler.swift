@@ -17,6 +17,25 @@ class AssociationHandler {
         return processSnapshot(snapshot, insertAllAtTop: insertAllAtTop)
     }
     
+    // MARK: - Create Operations
+    func addAssociation(name: String) async throws {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        
+        let snapshot = try await db.collection("associations")
+            .whereField("name", isEqualTo: trimmedName)
+            .getDocuments()
+        
+        guard snapshot.isEmpty else {
+            throw AssociationError.associationExists
+        }
+        
+        try await db.collection("associations").addDocument(data: [
+            "name": trimmedName,
+            "createdAt": FieldValue.serverTimestamp()
+        ])
+    }
+    
     // MARK: - Private Helpers
     
     /// Bearbejder query snapshot og formaterer resultater
@@ -36,6 +55,7 @@ extension AssociationHandler {
     enum AssociationError: LocalizedError {
         case firestoreError(Error)
         case emptyResult
+        case associationExists
         
         var errorDescription: String? {
             switch self {
@@ -43,6 +63,8 @@ extension AssociationHandler {
                 return "Firestore fejl: \(error.localizedDescription)"
             case .emptyResult:
                 return "Ingen foreninger fundet"
+            case .associationExists:
+                return "Association already exists"
             }
         }
     }
