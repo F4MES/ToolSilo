@@ -127,7 +127,7 @@ struct UploadToolView: View {
 
     private func validateInputs() -> Bool {
         guard !toolName.isEmpty, !toolDescription.isEmpty else {
-            errorMessage = "Please fill in all fields."
+            errorMessage = "Please fill in all required fields."
             return false
         }
         return true
