@@ -149,10 +149,6 @@ struct LoginView: View {
                 if let data = doc.data() {
                     let name = data["name"] as? String ?? "Unknown"
                     let association = data["association"] as? String ?? "All"
-                    // Gem i cachen, hvis du ønsker
-                    LocalCacheManager.shared.saveUserInfo(
-                        UserInfo(name: name, email: user.email ?? "", association: association)
-                    )
                 }
                 onLoginSuccess?()
             } catch {
@@ -243,7 +239,7 @@ struct RegisterView: View {
             )
         }
         .onAppear {
-            // Hent associations fra Firestore, fx:
+            // Hent associations fra Firestor
             Task {
                 do {
                     let fetched = try await AssociationHandler.shared.fetchAssociations(insertAllAtTop: false)

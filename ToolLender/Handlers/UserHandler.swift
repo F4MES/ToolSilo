@@ -10,9 +10,11 @@ class UserHandler {
 
     // MARK: - Hent Brugerdata
     /// Henter hele brugerens Firestore-dokument som en dictionary ([String: Any]).
-    private func fetchUserData(userUID: String) async throws -> [String: Any]? {
-        let db = Firestore.firestore()
-        let document = try await db.collection("users").document(userUID).getDocument()
+    func fetchUserData(userUID: String) async throws -> [String: Any]? {
+        let document = try await Firestore.firestore().collection("users")
+            .document(userUID)
+            .getDocument(source: .cache) // Cache first
+        
         return document.data()
     }
 

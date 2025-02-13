@@ -2,7 +2,7 @@ import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
 import Inject
-import Foundation
+import SDWebImageSwiftUI
 
 struct ProfileView: View {
     // MARK: - Environment
@@ -26,161 +26,197 @@ struct ProfileView: View {
     // MARK: - Body
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                HStack {
-                    Image(systemName: "person.circle")
-                        .resizable()
-                        .frame(width: 40, height: 40)
-                        .padding(.trailing, 10)
-
-                    Text(userName)
-                        .font(.title)
-                        .fontWeight(.bold)
-                }
-                .padding()
-
-                // Viser den nuværende brugers email
-                Text("Email: \(Auth.auth().currentUser?.email ?? "Unknown")")
-                    .font(.title3)
-
-                // Knap til at redigere profil
-                Button("Edit Profile") {
-                    showEditProfile = true
-                }
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-                .sheet(isPresented: $showEditProfile) {
-                    EditProfileView()
-                }
-
-                // Overskrift for ejerforening
-                HStack {
-                    Text("Current Association")
-                        .font(.headline)
-                    Spacer()
-                    Button(action: {
-                        showAddAssociationAlert = true
-                    }) {
-                        Image(systemName: "plus.circle")
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Profile Header
+                    VStack(spacing: 10) {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .frame(width: 100, height: 100)
                             .foregroundColor(.blue)
+                        
+                        Text(userName)
+                            .font(.title2.bold())
+                        
+                        Text(Auth.auth().currentUser?.email ?? "No email")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
-                }
-                .padding(.horizontal)
-
-                // Vælg ejerforening
-                Picker("Select Association", selection: $selectedAssociation) {
-                    ForEach(associations, id: \.self) { association in
-                        Text(association)
+                    .padding(.top, 20)
+                    
+                    // Action Buttons
+                    VStack(spacing: 15) {
+                        NavigationLink(destination: EditProfileView()) {
+                            HStack {
+                                Image(systemName: "pencil")
+                                Text("Edit Profile")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue.opacity(0.1))
+                            .foregroundColor(.blue)
+                            .cornerRadius(10)
+                        }
+                        
+                        Button {
+                            showLogoutConfirmation = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.left.square")
+                                Text("Log Out")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.orange.opacity(0.1))
+                            .foregroundColor(.orange)
+                            .cornerRadius(10)
+                        }
+                        
+                        Button {
+                            showDeleteUserAlert = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Delete Account")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.red.opacity(0.1))
+                            .foregroundColor(.red)
+                            .cornerRadius(10)
+                        }
                     }
-                }
-                .pickerStyle(MenuPickerStyle())
-                .onChange(of: selectedAssociation) { newValue in
-                    saveUserAssociation(newValue)
-                }
-
-                // Liste over brugerens værktøjer
-                List {
-                    ForEach(userTools) { tool in
+                    .padding(.horizontal)
+                    
+                    // Association Section
+                    VStack(alignment: .leading, spacing: 15) {
                         HStack {
-                            VStack(alignment: .leading) {
-                                Text(tool.name)
-                                    .font(.headline)
-                                    .foregroundColor(tool.isOnHold ? .gray : .primary)
-                                Text(tool.description)
-                                    .font(.subheadline)
-                                    .foregroundColor(tool.isOnHold ? .gray : .secondary)
-                                Text("Association: \(tool.category)")
-                                    .font(.footnote)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text("Your Association")
+                                .font(.headline)
+                            
                             Spacer()
-                        }
-                        .padding(.vertical, 5)
-                        .swipeActions(edge: .leading) {
+                            
                             Button {
-                                toggleHoldStatus(for: tool)
+                                showAddAssociationAlert = true
                             } label: {
-                                Label(tool.isOnHold ? "Unhold" : "Hold", systemImage: tool.isOnHold ? "play.circle" : "pause.circle")
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(.blue)
                             }
-                            .tint(tool.isOnHold ? .green : .orange)
                         }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                toolToDelete = tool
-                                showDeleteConfirmation = true
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                        
+                        Picker("Select Association", selection: $selectedAssociation) {
+                            ForEach(associations, id: \.self) { association in
+                                Text(association).tag(association)
                             }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.primary)
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(10)
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(15)
+                    .shadow(color: .gray.opacity(0.1), radius: 5)
+                    .padding(.horizontal)
+                    
+                    // Tools List
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text("Your Tools")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        if userTools.isEmpty {
+                            Text("No tools available")
+                                .foregroundColor(.secondary)
+                                .padding()
+                        } else {
+                            List {
+                                ForEach(userTools) { tool in
+                                    HStack {
+                                        VStack(alignment: .leading) {
+                                            Text(tool.name)
+                                                .font(.headline)
+                                                .foregroundColor(tool.isOnHold ? .gray : .primary)
+                                            Text(tool.description)
+                                                .font(.subheadline)
+                                                .foregroundColor(tool.isOnHold ? .gray : .secondary)
+                                            
+                                            HStack {
+                                                Image(systemName: "building.2")
+                                                    .font(.system(size: 12))
+                                                Text(tool.category)
+                                                    .font(.caption)
+                                            }
+                                            .foregroundColor(.blue)
+                                            .padding(.vertical, 4)
+                                        }
+                                        Spacer()
+                                        if tool.isOnHold {
+                                            Image(systemName: "pause.circle")
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
+                                    .swipeActions(edge: .leading) {
+                                        Button {
+                                            toggleHoldStatus(for: tool)
+                                        } label: {
+                                            Label(tool.isOnHold ? "Activate" : "Pause", 
+                                                  systemImage: tool.isOnHold ? "play.circle" : "pause.circle")
+                                        }
+                                        .tint(tool.isOnHold ? .green : .orange)
+                                    }
+                                    .swipeActions(edge: .trailing) {
+                                        Button(role: .destructive) {
+                                            toolToDelete = tool
+                                            showDeleteConfirmation = true
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(height: 300)
                         }
                     }
                 }
-                .alert("Delete Tool?", isPresented: $showDeleteConfirmation) {
-                    Button("Cancel", role: .cancel) {}
-                    Button("Delete", role: .destructive) {
-                        deleteTool()
-                    }
-                } message: {
-                    Text("Are you sure you want to delete this item?")
-                }
-
-                Spacer() // Tilføj en spacer for at skubbe knapperne til bunden
-
-                // Log Out knap
-                Button("Log Out") {
-                    showLogoutConfirmation = true
-                }
-                .padding()
-                .background(Color.gray)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-                .alert(isPresented: $showLogoutConfirmation) {
-                    Alert(
-                        title: Text("Log Out"),
-                        message: Text("Are you sure you want to log out?"),
-                        primaryButton: .destructive(Text("Log Out")) {
-                            logOut()
-                        },
-                        secondaryButton: .cancel()
-                    )
-                }
-
-                // Delete User knap
-                Button("Delete User") {
-                    showDeleteUserAlert = true
-                }
-                .padding()
-                .background(Color.red)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-                .alert(isPresented: $showDeleteUserAlert) {
-                    Alert(
-                        title: Text("Delete Account"),
-                        message: Text("Are you sure you want to delete your account? This action cannot be undone."),
-                        primaryButton: .destructive(Text("Delete")) {
-                            deleteUser()
-                        },
-                        secondaryButton: .cancel()
-                    )
-                }
+                .padding(.bottom, 30)
             }
-            .padding()
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        dismiss() // Lukker visningen
-                    }) {
-                        Text("Close")
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
                     }
                 }
             }
             .alert("Add New Association", isPresented: $showAddAssociationAlert) {
                 TextField("Association Name", text: $newAssociation)
-                Button("Add", action: addNewAssociation)
                 Button("Cancel", role: .cancel) {}
+                Button("Add") { addNewAssociation() }
+            }
+            .alert("Delete Tool?", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) { deleteTool() }
+            } message: {
+                Text("Are you sure you want to delete this tool?")
+            }
+            .alert("Delete Account", isPresented: $showDeleteUserAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) { deleteUser() }
+            } message: {
+                Text("This will permanently delete your account and all associated data. This action cannot be undone.")
+            }
+            .alert("Log Out", isPresented: $showLogoutConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Log Out", role: .destructive) { logOut() }
+            } message: {
+                Text("Are you sure you want to log out?")
             }
         }
         .task {
@@ -193,11 +229,92 @@ struct ProfileView: View {
         .enableInjection()
     }
 
+    // MARK: - UI Components
+    struct ToolCardView: View {
+        let tool: Tool
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    if let imageURL = tool.imageURL, let url = URL(string: imageURL) {
+                        WebImage(url: url)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 60, height: 60)
+                            .cornerRadius(8)
+                            .clipped()
+                    } else {
+                        Image(systemName: "photo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 60, height: 60)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(tool.name)
+                            .font(.subheadline.bold())
+                            .lineLimit(1)
+                        
+                        Text(tool.description)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "building.2")
+                                .font(.system(size: 12))
+                            Text(tool.category)
+                                .font(.caption)
+                                .lineLimit(1)
+                        }
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.15))
+                        .cornerRadius(4)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(spacing: 4) {
+                        Image(systemName: tool.isOnHold ? "pause.circle.fill" : "checkmark.circle.fill")
+                            .foregroundColor(tool.isOnHold ? .orange : .green)
+                        
+                        if let price = tool.pricePerDay, price > 0 {
+                            Text("\(price, specifier: "%.2f") DKK/day")
+                                .font(.caption2)
+                                .padding(5)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(5)
+                        } else {
+                            Text("Free")
+                                .font(.caption2)
+                                .padding(5)
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(5)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
+            }
+        }
+    }
+
     // MARK: - Henter cached info
     private func loadCachedUserInfo() {
-        if let cachedUserInfo = LocalCacheManager.shared.loadUserInfo() {
-            self.userName = cachedUserInfo.name
-            self.selectedAssociation = cachedUserInfo.association
+        Task {
+            do {
+                guard let userUID = Auth.auth().currentUser?.uid else { return }
+                let userData = try await UserHandler.shared.fetchUserData(userUID: userUID)
+                
+                self.userName = userData?["name"] as? String ?? "Bruger"
+                self.selectedAssociation = userData?["association"] as? String ?? "All"
+            } catch {
+                print("Fejl ved cache-hentning: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -271,7 +388,6 @@ struct ProfileView: View {
         do {
             let assoc = try await UserHandler.shared.fetchUserAssociation(userUID: userUID)
             self.selectedAssociation = assoc
-            // ... gem i cache??
         } catch {
             print("Error fetching user association: \(error.localizedDescription)")
         }
@@ -287,44 +403,41 @@ struct ProfileView: View {
 
     private func saveUserAssociation(_ association: String) {
         guard let userUID = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-
-        db.collection("users").document(userUID).setData(["association": association], merge: true) { error in
-            if let error = error {
-                print("Error saving user association: \(error.localizedDescription)")
-            } else {
-                // Opdaterer cachen med den nye forening
-                if let email = Auth.auth().currentUser?.email {
-                    let userInfo = UserInfo(name: self.userName, email: email, association: association)
-                    LocalCacheManager.shared.saveUserInfo(userInfo)
-                }
+        
+        Task {
+            do {
+                try await UserHandler.shared.updateUserFields(
+                    userUID: userUID, 
+                    updates: ["association": association]
+                )
+                // Firebase håndterer automatisk caching
+            } catch {
+                print("Fejl ved opdatering af forening: \(error.localizedDescription)")
             }
         }
     }
 
-private func addNewAssociation() {
-    let newAssociationName = newAssociation.trimmingCharacters(in: .whitespacesAndNewlines)
-    Task {
-        do {
-            try await AssociationHandler.shared.addAssociation(name: newAssociationName)
-            associations.append(newAssociationName)
-        } catch {
-            print("Error adding association: \(error.localizedDescription)")
+    private func addNewAssociation() {
+        let newAssociationName = newAssociation.trimmingCharacters(in: .whitespacesAndNewlines)
+        Task {
+            do {
+                try await AssociationHandler.shared.addAssociation(name: newAssociationName)
+                associations.append(newAssociationName)
+            } catch {
+                print("Error adding association: \(error.localizedDescription)")
+            }
         }
     }
-} 
 
     // MARK: - Brugeroplysninger
     private func fetchUserName() async {
         guard let userUID = Auth.auth().currentUser?.uid else { return }
         do {
-            let name = try await UserHandler.shared.fetchUserName(userUID: userUID)
-            if let fetchedName = name {
-                self.userName = fetchedName
+            if let name = try await UserHandler.shared.fetchUserName(userUID: userUID) {
+                self.userName = name
             }
-            // ... gem i cache??
         } catch {
-            print("Error fetching user name: \(error.localizedDescription)")
+            print("Fejl ved navnehentning: \(error.localizedDescription)")
         }
     }
 }
