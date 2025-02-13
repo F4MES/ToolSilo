@@ -47,6 +47,22 @@ struct ToolDetailView: View {
                         .foregroundColor(.secondary)
                 }
 
+                // Tilføj lokationsknap her
+                Button(action: {
+                    openMap(for: ownerAddress)
+                }) {
+                    HStack {
+                        Image(systemName: "map")
+                        Text("Show on Map")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.orange)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+                .padding(.vertical, 5)
+
                 Divider()
 
                 // Knap til at kontakte ejeren

@@ -218,10 +218,13 @@ struct ToolListView: View {
     }
 
     private func fetchTools() async {
-        let loadedTools = await ToolHandler.shared.fetchAllToolsCachedFirst()
-        self.tools = loadedTools
-
-        filterTools(by: searchText)
+        do {
+            let loadedTools = try await ToolHandler.shared.fetchAllTools()
+            self.tools = loadedTools
+            filterTools(by: searchText)
+        } catch {
+            print("Fejl ved hentning af værktøjer: \(error.localizedDescription)")
+        }
     }
 
 private func toggleHoldStatus(for tool: Tool) {

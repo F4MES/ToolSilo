@@ -10,11 +10,11 @@ class ToolHandler {
 
     // MARK: - Hent Værktøjer
     /// Henter alle værktøjer i 'tools' collection, evt. sorteret efter timestamp.
-    func fetchAllTools(descending: Bool = true) async throws -> [Tool] {
-        let db = Firestore.firestore()
-        let snapshot = try await db.collection("tools")
-            .order(by: "timestamp", descending: descending)
-            .getDocuments()
+    func fetchAllTools(useCache: Bool = true) async throws -> [Tool] {
+        let source: FirestoreSource = useCache ? .default : .server
+        let snapshot = try await Firestore.firestore().collection("tools")
+            .order(by: "timestamp", descending: true)
+            .getDocuments(source: source)
 
         return snapshot.documents.map { doc in
             Tool(
@@ -57,19 +57,6 @@ class ToolHandler {
     func deleteTool(_ tool: Tool) async throws {
         let db = Firestore.firestore()
         try await db.collection("tools").document(tool.id).delete()
-    }
-
-    /// Prøver at hente værktøjer online, gemmer i cache, men hvis det fejler, bruger vi cachens data.
-    func fetchAllToolsCachedFirst() async -> [Tool] {
-        do {
-            let allTools = try await fetchAllTools(descending: true)
-            LocalCacheManager.shared.saveTools(allTools)
-            return allTools
-        } catch {
-            print("Failed to fetch from Firestore. Using cached tools if available. Error: \(error)")
-            let cached = LocalCacheManager.shared.loadTools()
-            return cached
-        }
     }
 
     // MARK: - Create Operations

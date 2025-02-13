@@ -1,13 +1,20 @@
 import SwiftUI
-import FirebaseCore
+import Firebase
+import FirebaseFirestore
 import Network
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-  func application(_ application: UIApplication,
-                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    FirebaseApp.configure()
-    return true
-  }
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        FirebaseApp.configure()
+        
+        // Konfigurer Firestore med den nye metode
+        let db = Firestore.firestore()
+        let settings = db.settings
+        settings.isPersistenceEnabled = true // Brug den gamle metode som backup
+        db.settings = settings
+        
+        return true
+    }
 }
 
 @main
