@@ -144,7 +144,7 @@ struct UploadToolView: View {
             }
             .task {
                 do {
-                    self.categories = try await AssociationHandler.shared.fetchAssociations(insertAllAtTop: false)
+                    self.categories = try await AssociationHandler.shared.fetchAssociations(insertAllAtTop: true)
                 } catch {
                     print("Error loading categories: \(error.localizedDescription)")
                 }
