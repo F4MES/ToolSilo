@@ -34,20 +34,21 @@ class UserHandler {
     /// Opdaterer vilkårlige felter i "users" collection (fx ["address": "Ny adresse"]).
     func updateUserFields(userUID: String, updates: [String: Any]) async throws {
         guard !updates.isEmpty else { return }
-        let db = Firestore.firestore()
-        try await db.collection("users").document(userUID).updateData(updates)
+        try await Firestore.firestore().collection("users")
+            .document(userUID)
+            .setData(updates, merge: true)
     }
 
     // MARK: - Slet Bruger
     /// Sletter brugeren fra Firestore og FirebaseAuth, hvis brugeren er den aktive.
     /// (Hvis du også vil slette brugerens værktøjer, kan du evt. kalde ToolHandler.shared.deleteTool(...) for hver af brugerens tools før dette.)
     func deleteUser(userUID: String) async throws {
-        let db = Firestore.firestore()
-        // Slet Firestore-dokumentet for brugeren
-        try await db.collection("users").document(userUID).delete()
-
-        // Slet fra FirebaseAuth, hvis den nuværende bruger er den samme
-        guard let currentUser = Auth.auth().currentUser, currentUser.uid == userUID else { return }
-        try await currentUser.delete()
+        // Slet fra Firestore
+        try await Firestore.firestore().collection("users").document(userUID).delete()
+        
+        // Slet fra Auth hvis samme bruger
+        if let currentUser = Auth.auth().currentUser, currentUser.uid == userUID {
+            try await currentUser.delete()
+        }
     }
 } 

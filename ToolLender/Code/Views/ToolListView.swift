@@ -70,9 +70,7 @@ struct ToolListView: View {
                 Text("Are you sure you want to delete this item?")
             }
             .fullScreenCover(isPresented: $showProfileView) {
-                ProfileView(onLogout: {
-                    isLoggedOut = true
-                }, selectedAssociation: $userAssociation)
+                ProfileView(onLogout: handleLogout)
             }
             .fullScreenCover(isPresented: $isLoggedOut) {
                 ContentView(selectedAssociation: $userAssociation)
@@ -135,12 +133,11 @@ struct ToolListView: View {
         .navigationTitle(userAssociation)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    showProfileView = true
-                }) {
-                    Image(systemName: "person.crop.circle")
+                NavigationLink(destination: ProfileView(onLogout: handleLogout)) {
+                    Image(systemName: "person.circle")
                         .resizable()
-                        .frame(width: 30, height: 30)
+                        .frame(width: 35, height: 35)
+                        .padding(8)
                 }
             }
         }
@@ -223,20 +220,20 @@ struct ToolListView: View {
             self.tools = loadedTools
             filterTools(by: searchText)
         } catch {
-            print("Fejl ved hentning af værktøjer: \(error.localizedDescription)")
+            print("Fejl ved hentning af værktøj: \(error.localizedDescription)")
         }
     }
 
-private func toggleHoldStatus(for tool: Tool) {
-    Task {
-        do {
-            try await ToolHandler.shared.toggleHoldStatus(for: tool)
-            await fetchTools()
-        } catch {
-            print("Error toggling hold status: \(error.localizedDescription)")
+    private func toggleHoldStatus(for tool: Tool) {
+        Task {
+            do {
+                try await ToolHandler.shared.toggleHoldStatus(for: tool)
+                await fetchTools()
+            } catch {
+                print("Error toggling hold status: \(error.localizedDescription)")
+            }
         }
     }
-} 
 
     private func filterTools(by query: String) {
         if userAssociation == "All" {
@@ -269,14 +266,18 @@ private func toggleHoldStatus(for tool: Tool) {
     }
 
     private func deleteConfirmedTool() {
-    guard let tool = toolToDelete else { return }
-    Task {
-        do {
-            try await ToolHandler.shared.deleteTool(tool)
-            await fetchTools()
-        } catch {
-            print("Error deleting tool: \(error.localizedDescription)")
+        guard let tool = toolToDelete else { return }
+        Task {
+            do {
+                try await ToolHandler.shared.deleteTool(tool)
+                await fetchTools()
+            } catch {
+                print("Error deleting tool: \(error.localizedDescription)")
+            }
         }
     }
-} 
+
+    private func handleLogout() {
+        isLoggedOut = true
+    }
 }

@@ -54,6 +54,23 @@ class AssociationHandler {
         
         return associations
     }
+    
+    func updateUserAssociation(userUID: String, newAssociation: String) async throws {
+        let userRef = Firestore.firestore().collection("users").document(userUID)
+        try await userRef.setData(["association": newAssociation], merge: true)
+    }
+    
+    func getUserAssociation(userUID: String) async throws -> String {
+        let document = try await Firestore.firestore().collection("users")
+            .document(userUID)
+            .getDocument()
+        
+        guard let data = document.data(),
+              let association = data["association"] as? String else {
+            return "All"
+        }
+        return association
+    }
 }
 
 // MARK: - Error Handling

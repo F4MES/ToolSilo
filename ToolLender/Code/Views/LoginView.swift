@@ -263,8 +263,8 @@ struct RegisterView: View {
             do {
                 let result = try await Auth.auth().createUser(withEmail: email, password: password)
                 saveUserToFirestore(user: result.user) // Gemmer brugeroplysninger i Firestore
-                registrationSuccessful = true // Indikerer succesfuld registrering
-                errorMessage = "" // Nulstiller fejlmeddelelsen
+                registrationSuccessful = true
+                errorMessage = "" //
             } catch {
                 errorMessage = error.localizedDescription // Viser fejlmeddelelse
             }

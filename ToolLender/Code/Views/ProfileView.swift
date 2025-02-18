@@ -14,7 +14,7 @@ struct ProfileView: View {
     @State private var userTools: [Tool] = []
     @State private var showDeleteConfirmation = false
     @State private var toolToDelete: Tool?
-    @Binding var selectedAssociation: String
+    @State private var selectedAssociation: String = "All"
     @State private var associations: [String] = []
     @State private var newAssociation: String = ""
     @State private var showAddAssociationAlert = false
@@ -22,6 +22,7 @@ struct ProfileView: View {
     @State private var showEditProfile = false
     @State private var showDeleteUserAlert = false
     @State private var showLogoutConfirmation = false
+
 
     // MARK: - Body
     var body: some View {
@@ -104,16 +105,12 @@ struct ProfileView: View {
                             }
                         }
                         
-                        Picker("Select Association", selection: $selectedAssociation) {
+                        Picker("Vælg forening", selection: $selectedAssociation) {
                             ForEach(associations, id: \.self) { association in
-                                Text(association).tag(association)
+                                Text(association)
                             }
                         }
-                        .pickerStyle(.menu)
-                        .tint(.primary)
-                        .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(10)
+                        .onChange(of: selectedAssociation, perform: updateAssociation)
                     }
                     .padding()
                     .background(Color(.systemBackground))
@@ -220,13 +217,10 @@ struct ProfileView: View {
             }
         }
         .task {
-            loadCachedUserInfo()
-            await fetchUserTools()
-            await fetchUserAssociation()
+            await loadUserData()
             await fetchAssociations()
-            await fetchUserName()
+            await fetchUserTools()
         }
-        .enableInjection()
     }
 
     // MARK: - UI Components
@@ -304,17 +298,19 @@ struct ProfileView: View {
     }
 
     // MARK: - Henter cached info
-    private func loadCachedUserInfo() {
-        Task {
-            do {
-                guard let userUID = Auth.auth().currentUser?.uid else { return }
-                let userData = try await UserHandler.shared.fetchUserData(userUID: userUID)
-                
-                self.userName = userData?["name"] as? String ?? "Bruger"
-                self.selectedAssociation = userData?["association"] as? String ?? "All"
-            } catch {
-                print("Fejl ved cache-hentning: \(error.localizedDescription)")
+    private func loadUserData() async {
+        guard let user = Auth.auth().currentUser else { return }
+        
+        do {
+            let association = try await AssociationHandler.shared.getUserAssociation(userUID: user.uid)
+            let userName = try await UserHandler.shared.fetchUserName(userUID: user.uid) ?? "Bruger"
+            
+            await MainActor.run {
+                selectedAssociation = association
+                self.userName = userName
             }
+        } catch {
+            print("Fejl ved indlæsning af brugerdata: \(error)")
         }
     }
 
@@ -383,36 +379,31 @@ struct ProfileView: View {
     }
 
     // MARK: - Associations
-    private func fetchUserAssociation() async {
-        guard let userUID = Auth.auth().currentUser?.uid else { return }
-        do {
-            let assoc = try await UserHandler.shared.fetchUserAssociation(userUID: userUID)
-            self.selectedAssociation = assoc
-        } catch {
-            print("Error fetching user association: \(error.localizedDescription)")
-        }
-    }
-
     private func fetchAssociations() async {
         do {
-            self.associations = try await AssociationHandler.shared.fetchAssociations(insertAllAtTop: true)
+            let assoc = try await AssociationHandler.shared.fetchAssociations(insertAllAtTop: true)
+            await MainActor.run {
+                associations = assoc
+            }
         } catch {
-            print("Error fetching associations: \(error.localizedDescription)")
+            print("Fejl ved hentning af foreninger: \(error)")
         }
     }
 
-    private func saveUserAssociation(_ association: String) {
-        guard let userUID = Auth.auth().currentUser?.uid else { return }
+    private func updateAssociation(newValue: String) {
+        guard let user = Auth.auth().currentUser else { return }
         
         Task {
             do {
-                try await UserHandler.shared.updateUserFields(
-                    userUID: userUID, 
-                    updates: ["association": association]
+                try await AssociationHandler.shared.updateUserAssociation(
+                    userUID: user.uid,
+                    newAssociation: newValue
                 )
-                // Firebase håndterer automatisk caching
+                await MainActor.run {
+                    selectedAssociation = newValue
+                }
             } catch {
-                print("Fejl ved opdatering af forening: \(error.localizedDescription)")
+                print("Fejl ved opdatering: \(error)")
             }
         }
     }
@@ -426,18 +417,6 @@ struct ProfileView: View {
             } catch {
                 print("Error adding association: \(error.localizedDescription)")
             }
-        }
-    }
-
-    // MARK: - Brugeroplysninger
-    private func fetchUserName() async {
-        guard let userUID = Auth.auth().currentUser?.uid else { return }
-        do {
-            if let name = try await UserHandler.shared.fetchUserName(userUID: userUID) {
-                self.userName = name
-            }
-        } catch {
-            print("Fejl ved navnehentning: \(error.localizedDescription)")
         }
     }
 }
