@@ -7,10 +7,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         FirebaseApp.configure()
         
-        // Konfigurer Firestore med den nye metode
+        // Aktiver offline persistence for Firestore
         let db = Firestore.firestore()
         let settings = db.settings
-        settings.isPersistenceEnabled = true // Brug den gamle metode som backup
+        settings.isPersistenceEnabled = true // Aktiver offline persistence
         db.settings = settings
         
         return true
@@ -19,7 +19,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 @main
 struct ToolLenderApp: App {
-  // register app delegate for Firebase setup
   @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
   @State private var selectedAssociation: String = ""
