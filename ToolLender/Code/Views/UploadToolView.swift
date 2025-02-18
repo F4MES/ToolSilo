@@ -191,7 +191,7 @@ struct UploadToolView: View {
         do {
             let metadata = StorageMetadata()
             metadata.contentType = "image/jpeg"
-            try await imageRef.putDataAsync(imageData, metadata: metadata)
+            _ = try await imageRef.putDataAsync(imageData, metadata: metadata)
             let url = try await imageRef.downloadURL()
             return url.absoluteString
         } catch {
