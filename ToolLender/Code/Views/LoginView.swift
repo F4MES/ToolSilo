@@ -147,8 +147,8 @@ struct LoginView: View {
 
                 // Efter succes:
                 if let data = doc.data() {
-                    let name = data["name"] as? String ?? "Unknown"
-                    let association = data["association"] as? String ?? "All"
+                    _ = data["name"] as? String ?? "Unknown"
+                    _ = data["association"] as? String ?? "All"
                 }
                 onLoginSuccess?()
             } catch {

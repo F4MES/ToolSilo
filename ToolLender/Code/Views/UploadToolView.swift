@@ -203,19 +203,19 @@ struct UploadToolView: View {
     private func saveToolToFirebase(imageUrl: String?) async throws {
         guard let userUID = Auth.auth().currentUser?.uid else { return }
         
-        let toolData: [String: Any] = [
-            "name": toolName,
-            "description": toolDescription,
-            "pricePerDay": Double(pricePerDay) ?? 0.0,
-            "imageURL": imageUrl ?? "",
-            "ownerUID": userUID,
-            "category": userAssociation,
-            "timestamp": Timestamp(date: Date()),
-            "isOnHold": false
-        ]
+        let _ = try await ToolHandler.shared.uploadTool(
+            name: toolName,
+            description: toolDescription,
+            pricePerDay: Double(pricePerDay) ?? 0.0,
+            imageURL: imageUrl,
+            ownerUID: userUID,
+            category: userAssociation
+        )
         
-        let db = Firestore.firestore()
-        try await db.collection("tools").addDocument(data: toolData)
+        DispatchQueue.main.async {
+            errorMessage = "Værktøj gemt succesfuldt!"
+            print("Værktøj gemt succesfuldt!")
+        }
     }
 }
 
