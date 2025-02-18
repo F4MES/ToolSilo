@@ -155,8 +155,7 @@ struct ToolDetailView: View {
         }
     }
 
-    // Åbner kortapplikationen med den angivne adresse
-    //Bruges ikke i appen pga. foreningens ønske.
+    // Åbner kortapplikationen
     private func openMap(for address: String) {
         let query = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         if let mapURL = URL(string: "http://maps.apple.com/?q=\(query)") {

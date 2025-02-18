@@ -9,18 +9,12 @@ class AssociationHandler {
     // MARK: - Public Methods
     
     /// Henter alle ejerforeninger med caching og offline support
-     func fetchAssociations(insertAllAtTop: Bool) async throws -> [String] {
-        let ref = Firestore.firestore().collection("associations")
+    func fetchAssociations(insertAllAtTop: Bool, useCache: Bool = true) async throws -> [String] {
+        let source: FirestoreSource = useCache ? .default : .server
+        let snapshot = try await Firestore.firestore().collection("associations")
+            .getDocuments(source: source)
         
-        let source: FirestoreSource = FirestoreSource.cache
-        let snapshot = try await ref.getDocuments(source: source)
-        
-        var associations = snapshot.documents.compactMap { $0["name"] as? String }
-        
-        if insertAllAtTop {
-            associations.insert("All", at: 0)
-        }
-        return associations
+        return processSnapshot(snapshot, insertAllAtTop: insertAllAtTop)
     }
     
     // MARK: - Create Operations
@@ -60,17 +54,6 @@ class AssociationHandler {
         try await userRef.setData(["association": newAssociation], merge: true)
     }
     
-    func getUserAssociation(userUID: String) async throws -> String {
-        let document = try await Firestore.firestore().collection("users")
-            .document(userUID)
-            .getDocument()
-        
-        guard let data = document.data(),
-              let association = data["association"] as? String else {
-            return "All"
-        }
-        return association
-    }
 }
 
 // MARK: - Error Handling

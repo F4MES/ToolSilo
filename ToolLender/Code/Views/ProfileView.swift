@@ -18,11 +18,12 @@ struct ProfileView: View {
     @State private var associations: [String] = []
     @State private var newAssociation: String = ""
     @State private var showAddAssociationAlert = false
-    @State private var userName: String = "Your Profile"
+    @State private var userName: String = ""
     @State private var showEditProfile = false
     @State private var showDeleteUserAlert = false
     @State private var showLogoutConfirmation = false
 
+    @AppStorage("cachedUserUID") private var cachedUserUID: String = ""
 
     // MARK: - Body
     var body: some View {
@@ -92,7 +93,7 @@ struct ProfileView: View {
                     // Association Section
                     VStack(alignment: .leading, spacing: 15) {
                         HStack {
-                            Text("Your Association")
+                            Text("Current Association")
                                 .font(.headline)
                             
                             Spacer()
@@ -105,7 +106,7 @@ struct ProfileView: View {
                             }
                         }
                         
-                        Picker("Vælg forening", selection: $selectedAssociation) {
+                        Picker("Choose Associaton", selection: $selectedAssociation) {
                             ForEach(associations, id: \.self) { association in
                                 Text(association)
                             }
@@ -299,18 +300,34 @@ struct ProfileView: View {
 
     // MARK: - Henter cached info
     private func loadUserData() async {
-        guard let user = Auth.auth().currentUser else { return }
-        
+        let uid = Auth.auth().currentUser?.uid ?? cachedUserUID
+        guard !uid.isEmpty else { return }
+
         do {
-            let association = try await AssociationHandler.shared.getUserAssociation(userUID: user.uid)
-            let userName = try await UserHandler.shared.fetchUserName(userUID: user.uid) ?? "Bruger"
+            // Første forsøg: Cache-only
+            let userData = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: true)
+            await updateUI(with: userData, uid: uid)
             
-            await MainActor.run {
-                selectedAssociation = association
-                self.userName = userName
-            }
         } catch {
-            print("Fejl ved indlæsning af brugerdata: \(error)")
+            print("Cache miss: \(error.localizedDescription)")
+            do {
+                // Andet forsøg: Server med cache-fallback
+                let userData = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: false)
+                await updateUI(with: userData, uid: uid)
+            } catch {
+                print("Server error: \(error.localizedDescription)")
+                await MainActor.run {
+                    userName = "Bruger"
+                }
+            }
+        }
+    }
+
+    private func updateUI(with userData: [String: Any]?, uid: String) async {
+        await MainActor.run {
+            selectedAssociation = userData?["association"] as? String ?? "All"
+            userName = userData?["name"] as? String ?? "Bruger"
+            cachedUserUID = uid
         }
     }
 
@@ -329,6 +346,7 @@ struct ProfileView: View {
     private func fetchUserTools() async {
         guard let userUID = Auth.auth().currentUser?.uid else { return }
         do {
+            // Hent altid fra cache først, opdater automatisk ved forbindelse
             self.userTools = try await ToolHandler.shared.fetchToolsByOwner(ownerUID: userUID)
         } catch {
             print("Error fetching user tools: \(error.localizedDescription)")

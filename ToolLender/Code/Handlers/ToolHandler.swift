@@ -32,10 +32,11 @@ class ToolHandler {
     }
 
     /// Henter værktøjer fra Firestore, hvor feltet "ownerUID" matcher den angivne UID.
-    func fetchToolsByOwner(ownerUID: String) async throws -> [Tool] {
+    func fetchToolsByOwner(ownerUID: String, useCache: Bool = true) async throws -> [Tool] {
+        let source: FirestoreSource = useCache ? .default : .server
         let snapshot = try await Firestore.firestore().collection("tools")
             .whereField("ownerUID", isEqualTo: ownerUID)
-            .getDocuments()
+            .getDocuments(source: source)
         
         return try snapshot.documents.map { doc in
             let data = doc.data()
@@ -45,7 +46,7 @@ class ToolHandler {
 
     // MARK: - Opdater
     /// Toggler 'isOnHold' for det angivne værktøj i Firestore.
-    func toggleHoldStatus(for tool: Tool) async throws {
+    func toggleHoldStatus(for tool: Tool, useCache: Bool = true) async throws {
         let db = Firestore.firestore()
         try await db.collection("tools").document(tool.id).updateData([
             "isOnHold": !tool.isOnHold

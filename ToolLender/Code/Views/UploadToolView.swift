@@ -125,7 +125,7 @@ struct UploadToolView: View {
                 }
                 .padding(.bottom, 20)
             }
-            .navigationTitle("New Tool")
+            .navigationTitle("New Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -203,7 +203,7 @@ struct UploadToolView: View {
     private func saveToolToFirebase(imageUrl: String?) async throws {
         guard let userUID = Auth.auth().currentUser?.uid else { return }
         
-        let _ = try await ToolHandler.shared.uploadTool(
+        let savedTool = try await ToolHandler.shared.uploadTool(
             name: toolName,
             description: toolDescription,
             pricePerDay: Double(pricePerDay) ?? 0.0,
@@ -215,6 +215,7 @@ struct UploadToolView: View {
         DispatchQueue.main.async {
             errorMessage = "Værktøj gemt succesfuldt!"
             print("Værktøj gemt succesfuldt!")
+            print(savedTool)
         }
     }
 }
