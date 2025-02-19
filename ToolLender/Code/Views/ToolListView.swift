@@ -202,15 +202,16 @@ struct ToolListView: View {
 
     private func fetchUserAssociation() async {
         guard let userUID = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-
+        
         do {
-            let document = try await db.collection("users").document(userUID).getDocument()
-            if let data = document.data(), let association = data["association"] as? String {
-                self.userAssociation = association
+            // Brug UserHandler til at hente association
+            let association = try await UserHandler.shared.fetchUserAssociation(userUID: userUID, useCache: true)
+            await MainActor.run {
+                userAssociation = association
             }
         } catch {
-            print("Error fetching user association: \(error.localizedDescription)")
+            print("Fejl ved hentning af forening: \(error.localizedDescription)")
+            userAssociation = "All"
         }
     }
 
