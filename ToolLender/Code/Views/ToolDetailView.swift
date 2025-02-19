@@ -99,36 +99,43 @@ struct ToolDetailView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                List {
-                    ForEach(otherTools) { otherTool in
-                        NavigationLink(destination: ToolDetailLoader(tool: otherTool)) {
-                            HStack(spacing: 10) {
-                                if let imageURL = otherTool.imageURL, let url = URL(string: imageURL) {
-                                    WebImage(url: url)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 50, height: 50)
-                                        .cornerRadius(10)
-                                } else {
-                                    Image(systemName: "photo")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 50, height: 50)
-                                        .foregroundColor(.gray)
-                                        .cornerRadius(10)
-                                }
+                if otherTools.isEmpty {
+                    Text("No other tools available")
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                } else {
+                    List {
+                        ForEach(otherTools) { otherTool in
+                            NavigationLink(destination: ToolDetailLoader(tool: otherTool)) {
+                                HStack(spacing: 10) {
+                                    if let imageURL = otherTool.imageURL, let url = URL(string: imageURL) {
+                                        WebImage(url: url)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 50, height: 50)
+                                            .cornerRadius(10)
+                                    } else {
+                                        Image(systemName: "photo")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 50, height: 50)
+                                            .foregroundColor(.gray)
+                                            .cornerRadius(10)
+                                    }
 
-                                VStack(alignment: .leading) {
-                                    Text(otherTool.name)
-                                        .font(.headline)
-                                    Text(otherTool.description)
-                                        .font(.subheadline)
+                                    VStack(alignment: .leading) {
+                                        Text(otherTool.name)
+                                            .font(.headline)
+                                        Text(otherTool.description)
+                                            .font(.subheadline)
+                                    }
                                 }
                             }
                         }
                     }
+                    .frame(height: 200) // Begrænser højden af listen
                 }
-                .frame(height: 200) // Begrænser højden af listen
 
                 Spacer()
             }
