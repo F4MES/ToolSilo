@@ -9,38 +9,65 @@ class UserHandler {
     private init() {}
 
     // MARK: - Hent Brugerdata
-    /// Henter hele brugerens Firestore-dokument som en dictionary ([String: Any]).
+    /// Henter hele brugerens Firestore-dokument.
     func fetchUserData(userUID: String, useCache: Bool = true) async throws -> UserInfo {
-        // Først hent fra cache for hurtig respons
-        let document = try await Firestore.firestore().collection("users")
-            .document(userUID)
-            .getDocument(source: .cache)
-        
-        let data = document.data() ?? [:]
-        let userInfo = UserInfo(
-            id: document.documentID,
-            name: data["name"] as? String ?? "Bruger",
-            email: data["email"] as? String ?? "",
-            phoneNumber: data["phoneNumber"] as? String,
-            address: data["address"] as? String,
-            association: data["association"] as? String ?? "All"
-        )
-        
-        // Start baggrundsopdatering hvis cache blev brugt
         if useCache {
-            Task {
-                do {
-                    _ = try await Firestore.firestore().collection("users")
-                        .document(userUID)
-                        .getDocument(source: .server)
+            // Check først om der er data i cachen
+            do {
+                let cachedDoc = try await Firestore.firestore().collection("users")
+                    .document(userUID)
+                    .getDocument(source: .cache)
+                
+                if let data = cachedDoc.data() {
+                    // Start baggrundsopdatering hvis vi er online
+                    Task {
+                        _ = try? await Firestore.firestore().collection("users")
+                            .document(userUID)
+                            .getDocument(source: .server)
                         print("cache opdateret (users)")
-                } catch {
-                    print("Baggrundsopdatering fejlede: \(error.localizedDescription)")
+                    }
+                    
+                    return UserInfo(
+                        id: cachedDoc.documentID,
+                        name: data["name"] as? String ?? "Bruger",
+                        email: data["email"] as? String ?? "",
+                        phoneNumber: data["phoneNumber"] as? String,
+                        address: data["address"] as? String,
+                        association: data["association"] as? String ?? "All"
+                    )
                 }
+            } catch {
+                print("Cache miss: \(error.localizedDescription)")
             }
         }
         
-        return userInfo
+        // Prøv at hente fra server, men hvis offline returner en default UserInfo
+        do {
+            let document = try await Firestore.firestore().collection("users")
+                .document(userUID)
+                .getDocument(source: .server)
+            
+            let data = document.data() ?? [:]
+            return UserInfo(
+                id: document.documentID,
+                name: data["name"] as? String ?? "Bruger",
+                email: data["email"] as? String ?? "",
+                phoneNumber: data["phoneNumber"] as? String,
+                address: data["address"] as? String,
+                association: data["association"] as? String ?? "All"
+            )
+        } catch {
+            // Hvis offline eller anden fejl, returner default UserInfo
+            print("Server error (muligvis offline): \(error.localizedDescription)")
+            return UserInfo(
+                id: userUID,
+                name: "Bruger (offline)",
+                email: "",
+                phoneNumber: nil,
+                address: nil,
+                association: "All"
+            )
+        }
     }
 
     /// Henter kun et brugernavn, hvis det findes.

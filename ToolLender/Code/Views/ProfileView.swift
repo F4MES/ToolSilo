@@ -334,22 +334,12 @@ struct ProfileView: View {
     private func fetchUserTools() async {
         guard let userUID = Auth.auth().currentUser?.uid else { return }
         do {
-            // Første forsøg: Cache-only
-            let tools = try await ToolHandler.shared.fetchToolsByOwner(ownerUID: userUID, useCache: true)
+            let tools = try await ToolHandler.shared.fetchToolsByOwner(ownerUID: userUID)
             await MainActor.run {
                 self.userTools = tools
             }
         } catch {
-            print("Cache miss for tools: \(error.localizedDescription)")
-            do {
-                // Andet forsøg: Server
-                let tools = try await ToolHandler.shared.fetchToolsByOwner(ownerUID: userUID, useCache: false)
-                await MainActor.run {
-                    self.userTools = tools
-                }
-            } catch {
-                print("Server error for tools: \(error.localizedDescription)")
-            }
+            print("Fejl ved hentning af værktøjer: \(error.localizedDescription)")
         }
     }
 

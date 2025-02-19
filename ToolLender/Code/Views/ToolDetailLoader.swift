@@ -3,40 +3,33 @@ import FirebaseFirestore
 import Inject
 
 struct ToolDetailLoader: View {
-    let tool: Tool // Det værktøj, der skal vises
-    @State private var ownerName = "" // Ejerens navn
-    @State private var ownerEmail = "" // Ejerens email
-    @State private var ownerPhoneNumber = "" // Ejerens telefonnummer
-    @State private var ownerAddress = "" // Ejerens adresse
-
+    let tool: Tool
+    @State private var ownerData: UserInfo?
+    
     var body: some View {
-        ToolDetailView(
-            tool: tool,
-            ownerName: ownerName,
-            ownerEmail: ownerEmail,
-            ownerPhoneNumber: ownerPhoneNumber,
-            ownerAddress: ownerAddress
-        )
+        Group {
+            if let ownerData = ownerData {
+                ToolDetailView(
+                    tool: tool,
+                    ownerName: ownerData.name,
+                    ownerEmail: ownerData.email,
+                    ownerPhoneNumber: ownerData.phoneNumber ?? "Unknown",
+                    ownerAddress: ownerData.address ?? "Unknown"
+                )
+            } else {
+                ProgressView()
+            }
+        }
         .task {
-            await fetchOwnerInfo() // Henter ejeroplysninger ved visning
+            await fetchOwnerInfo()
         }
     }
-
-    // Henter ejeroplysninger fra Firestore
+    
     private func fetchOwnerInfo() async {
         do {
-            // Brug UserHandler til at hente brugerdata med cache-support
-            let userInfo = try await UserHandler.shared.fetchUserData(userUID: tool.ownerUID, useCache: true)
-            
-            // Opdater UI med brugerdata
-            ownerName = userInfo.name
-            ownerEmail = userInfo.email
-            ownerPhoneNumber = userInfo.phoneNumber ?? "Unknown"
-            ownerAddress = userInfo.address ?? "Unknown"
-            
-            print("Fetched owner info: \(ownerName), \(ownerEmail), \(ownerPhoneNumber), \(ownerAddress)")
+            ownerData = try await UserHandler.shared.fetchUserData(userUID: tool.ownerUID)
         } catch {
-            print("Error fetching owner info: \(error.localizedDescription)")
+            print("Fejl ved hentning af ejer: \(error.localizedDescription)")
         }
     }
 }

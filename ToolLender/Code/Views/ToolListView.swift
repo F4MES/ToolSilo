@@ -77,6 +77,9 @@ struct ToolListView: View {
             }
         }
         .enableInjection()
+        .refreshable {
+            await fetchTools()
+        }
     }
 
     private var searchField: some View {
@@ -217,9 +220,11 @@ struct ToolListView: View {
 
     private func fetchTools() async {
         do {
-            let loadedTools = try await ToolHandler.shared.fetchAllTools()
-            self.tools = loadedTools
-            filterTools(by: searchText)
+            let loadedTools = try await ToolHandler.shared.fetchAllTools(useCache: true)
+            await MainActor.run {
+                self.tools = loadedTools
+                filterTools(by: searchText)
+            }
         } catch {
             print("Fejl ved hentning af værktøj: \(error.localizedDescription)")
         }

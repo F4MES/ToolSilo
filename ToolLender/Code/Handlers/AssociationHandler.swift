@@ -10,29 +10,36 @@ class AssociationHandler {
     
     /// Henter alle ejerforeninger med caching og offline support
     func fetchAssociations(insertAllAtTop: Bool = true, useCache: Bool = true) async throws -> [String] {
-        // Først hent fra cache for hurtig respons
-        let snapshot = try await Firestore.firestore().collection("associations")
-            .getDocuments(source: .cache)
-        
-        var associations = snapshot.documents.compactMap { $0["name"] as? String }
-        
-        if insertAllAtTop {
-            associations.insert("All", at: 0)
-        }
-        
-        // Start baggrundsopdatering hvis cache blev brugt
         if useCache {
-            Task {
-                do {
-                    _ = try await Firestore.firestore().collection("associations")
+            // Check først om der er data i cachen
+            let cachedSnapshot = try? await Firestore.firestore().collection("associations")
+                .getDocuments(source: .cache)
+            
+            // Hvis vi har cache data, brug det og opdater i baggrunden
+            if let documents = cachedSnapshot?.documents, !documents.isEmpty {
+                // Start baggrundsopdatering
+                Task {
+                    _ = try? await Firestore.firestore().collection("associations")
                         .getDocuments(source: .server)
-                        print("cache opdateret (associations)")
-                } catch {
-                    print("Baggrundsopdatering af foreninger fejlede: \(error.localizedDescription)")
+                    print("cache opdateret (associations)")
                 }
+                
+                var associations = documents.compactMap { $0["name"] as? String }
+                if insertAllAtTop {
+                    associations.insert("All", at: 0)
+                }
+                return associations
             }
         }
         
+        // Hvis ingen cache eller cache er tom, hent fra server
+        let snapshot = try await Firestore.firestore().collection("associations")
+            .getDocuments(source: .server)
+        
+        var associations = snapshot.documents.compactMap { $0["name"] as? String }
+        if insertAllAtTop {
+            associations.insert("All", at: 0)
+        }
         return associations
     }
     

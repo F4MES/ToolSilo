@@ -11,12 +11,45 @@ class ToolHandler {
     // MARK: - Hent Værktøjer
     /// Henter alle værktøjer i 'tools' collection, evt. sorteret efter timestamp.
     func fetchAllTools(useCache: Bool = true) async throws -> [Tool] {
-        // Først hent fra cache for hurtig respons
+        if useCache {
+            // Check først om der er data i cachen
+            let cachedSnapshot = try? await Firestore.firestore().collection("tools")
+                .order(by: "timestamp", descending: true)
+                .getDocuments(source: .cache)
+            
+            // Hvis vi har cache data, brug det og opdater i baggrunden
+            if let documents = cachedSnapshot?.documents, !documents.isEmpty {
+                // Start baggrundsopdatering
+                Task {
+                    _ = try? await Firestore.firestore().collection("tools")
+                        .order(by: "timestamp", descending: true)
+                        .getDocuments(source: .server)
+                    print("cache opdateret (tools)")
+                }
+                
+                return documents.map { doc in
+                    let data = doc.data()
+                    return Tool(
+                        id: doc.documentID,
+                        name: data["name"] as? String ?? "",
+                        description: data["description"] as? String ?? "",
+                        imageURL: data["imageURL"] as? String,
+                        ownerUID: data["ownerUID"] as? String ?? "",
+                        pricePerDay: data["pricePerDay"] as? Double,
+                        category: data["category"] as? String ?? "",
+                        isOnHold: data["isOnHold"] as? Bool ?? false,
+                        timestamp: (data["timestamp"] as? Timestamp)?.dateValue()
+                    )
+                }
+            }
+        }
+        
+        // Hvis ingen cache eller cache er tom, hent fra server
         let snapshot = try await Firestore.firestore().collection("tools")
             .order(by: "timestamp", descending: true)
-            .getDocuments(source: .cache)
-
-        let tools = snapshot.documents.map { doc in
+            .getDocuments(source: .server)
+        
+        return snapshot.documents.map { doc in
             let data = doc.data()
             return Tool(
                 id: doc.documentID,
@@ -30,32 +63,49 @@ class ToolHandler {
                 timestamp: (data["timestamp"] as? Timestamp)?.dateValue()
             )
         }
-        
-        // Start baggrundsopdatering hvis cache blev brugt
-        if useCache {
-            Task {
-                do {
-                    _ = try await Firestore.firestore().collection("tools")
-                        .order(by: "timestamp", descending: true)
-                        .getDocuments(source: .server)
-                        print ("Cache opdateret (tools)")
-                } catch {
-                    print("Baggrundsopdatering af værktøjer fejlede: \(error.localizedDescription)")
-                }
-            }
-        }
-        
-        return tools
     }
 
     /// Henter værktøjer fra Firestore, hvor feltet "ownerUID" matcher den angivne UID.
     func fetchToolsByOwner(ownerUID: String, useCache: Bool = true) async throws -> [Tool] {
-        // Først hent fra cache for hurtig respons
+        if useCache {
+            // Check først om der er data i cachen
+            let cachedSnapshot = try? await Firestore.firestore().collection("tools")
+                .whereField("ownerUID", isEqualTo: ownerUID)
+                .getDocuments(source: .cache)
+            
+            // Hvis vi har cache data, brug det og opdater i baggrunden
+            if let documents = cachedSnapshot?.documents, !documents.isEmpty {
+                // Start baggrundsopdatering
+                Task {
+                    _ = try? await Firestore.firestore().collection("tools")
+                        .whereField("ownerUID", isEqualTo: ownerUID)
+                        .getDocuments(source: .server)
+                    print("cache opdateret (tools by owner)")
+                }
+                
+                return documents.map { doc in
+                    let data = doc.data()
+                    return Tool(
+                        id: doc.documentID,
+                        name: data["name"] as? String ?? "",
+                        description: data["description"] as? String ?? "",
+                        imageURL: data["imageURL"] as? String,
+                        ownerUID: data["ownerUID"] as? String ?? "",
+                        pricePerDay: data["pricePerDay"] as? Double,
+                        category: data["category"] as? String ?? "",
+                        isOnHold: data["isOnHold"] as? Bool ?? false,
+                        timestamp: (data["timestamp"] as? Timestamp)?.dateValue()
+                    )
+                }
+            }
+        }
+        
+        // Hvis ingen cache eller cache er tom, hent fra server
         let snapshot = try await Firestore.firestore().collection("tools")
             .whereField("ownerUID", isEqualTo: ownerUID)
-            .getDocuments(source: .cache)
+            .getDocuments(source: .server)
         
-        let tools = snapshot.documents.map { doc in
+        return snapshot.documents.map { doc in
             let data = doc.data()
             return Tool(
                 id: doc.documentID,
@@ -69,21 +119,6 @@ class ToolHandler {
                 timestamp: (data["timestamp"] as? Timestamp)?.dateValue()
             )
         }
-        
-        // Start baggrundsopdatering hvis cache blev brugt
-        if useCache {
-            Task {
-                do {
-                    _ = try await Firestore.firestore().collection("tools")
-                        .whereField("ownerUID", isEqualTo: ownerUID)
-                        .getDocuments(source: .server)
-                } catch {
-                    print("Baggrundsopdatering af brugerværktøjer fejlede: \(error.localizedDescription)")
-                }
-            }
-        }
-        
-        return tools
     }
 
     // MARK: - Opdater
@@ -131,16 +166,39 @@ class ToolHandler {
     }
 
     /// Henter et specifikt værktøj fra Firestore
-    func fetchTool(documentID: String) async throws -> Tool {
+    func fetchTool(documentID: String, useCache: Bool = true) async throws -> Tool {
+        if useCache {
+            // Check først om der er data i cachen
+            let cachedDoc = try? await Firestore.firestore().collection("tools")
+                .document(documentID)
+                .getDocument(source: .cache)
+            
+            if let data = cachedDoc?.data() {
+                return Tool(
+                    id: documentID,
+                    name: data["name"] as? String ?? "",
+                    description: data["description"] as? String ?? "",
+                    imageURL: data["imageURL"] as? String,
+                    ownerUID: data["ownerUID"] as? String ?? "",
+                    pricePerDay: data["pricePerDay"] as? Double,
+                    category: data["category"] as? String ?? "",
+                    isOnHold: data["isOnHold"] as? Bool ?? false,
+                    timestamp: data["timestamp"] as? Date
+                )
+            }
+        }
+        
+        // Hvis ingen cache eller cache er tom, hent fra server
         let document = try await Firestore.firestore()
             .collection("tools")
             .document(documentID)
-            .getDocument()
+            .getDocument(source: .server)
         
         guard let data = document.data() else {
             throw NSError(domain: "ToolError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Document data not found"])
         }
         
+        // Data fra serveren bliver automatisk gemt i cachen til næste gang
         return Tool(
             id: documentID,
             name: data["name"] as? String ?? "",
