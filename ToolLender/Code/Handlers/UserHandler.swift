@@ -11,13 +11,13 @@ class UserHandler {
     // MARK: - Hent Brugerdata
     /// Henter hele brugerens Firestore-dokument som en dictionary ([String: Any]).
     func fetchUserData(userUID: String, useCache: Bool = true) async throws -> UserInfo {
-        let source: FirestoreSource = useCache ? .cache : .server
+        // Først hent fra cache for hurtig respons
         let document = try await Firestore.firestore().collection("users")
             .document(userUID)
-            .getDocument(source: source)
+            .getDocument(source: .cache)
         
         let data = document.data() ?? [:]
-        return UserInfo(
+        let userInfo = UserInfo(
             id: document.documentID,
             name: data["name"] as? String ?? "Bruger",
             email: data["email"] as? String ?? "",
@@ -25,6 +25,22 @@ class UserHandler {
             address: data["address"] as? String,
             association: data["association"] as? String ?? "All"
         )
+        
+        // Start baggrundsopdatering hvis cache blev brugt
+        if useCache {
+            Task {
+                do {
+                    _ = try await Firestore.firestore().collection("users")
+                        .document(userUID)
+                        .getDocument(source: .server)
+                        print("cache opdateret (users)")
+                } catch {
+                    print("Baggrundsopdatering fejlede: \(error.localizedDescription)")
+                }
+            }
+        }
+        
+        return userInfo
     }
 
     /// Henter kun et brugernavn, hvis det findes.

@@ -10,14 +10,27 @@ class AssociationHandler {
     
     /// Henter alle ejerforeninger med caching og offline support
     func fetchAssociations(insertAllAtTop: Bool = true, useCache: Bool = true) async throws -> [String] {
-        let source: FirestoreSource = useCache ? .cache : .server
+        // Først hent fra cache for hurtig respons
         let snapshot = try await Firestore.firestore().collection("associations")
-            .getDocuments(source: source)
+            .getDocuments(source: .cache)
         
         var associations = snapshot.documents.compactMap { $0["name"] as? String }
         
         if insertAllAtTop {
             associations.insert("All", at: 0)
+        }
+        
+        // Start baggrundsopdatering hvis cache blev brugt
+        if useCache {
+            Task {
+                do {
+                    _ = try await Firestore.firestore().collection("associations")
+                        .getDocuments(source: .server)
+                        print("cache opdateret (associations)")
+                } catch {
+                    print("Baggrundsopdatering af foreninger fejlede: \(error.localizedDescription)")
+                }
+            }
         }
         
         return associations

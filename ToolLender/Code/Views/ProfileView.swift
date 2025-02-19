@@ -302,20 +302,9 @@ struct ProfileView: View {
     private func loadUserData() async {
         let uid = Auth.auth().currentUser?.uid ?? cachedUserUID
         guard !uid.isEmpty else { return }
-
-        do {
-            // Cache-only
-            let userInfo = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: true)
-            await MainActor.run {
-                selectedAssociation = userInfo.association
-                userName = userInfo.name
-                cachedUserUID = uid
-            }
-        } catch {
-            print("Cache miss: \(error.localizedDescription)")
             do {
                 // Server med cache-fallback
-                let userInfo = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: false)
+                let userInfo = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: true)
                 await MainActor.run {
                     selectedAssociation = userInfo.association
                     userName = userInfo.name
@@ -326,7 +315,7 @@ struct ProfileView: View {
                 await MainActor.run {
                     userName = "Bruger"
                 }
-            }
+            
         }
     }
 
