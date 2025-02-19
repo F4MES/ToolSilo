@@ -61,7 +61,7 @@ struct ToolListView: View {
             .onChange(of: selectedSortOption) { _ in
                 sortTools()
             }
-            .alert("Delete Tool?", isPresented: $showDeleteConfirmation) {
+            .alert("Delete Item?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) {
                     deleteConfirmedTool()
@@ -226,7 +226,7 @@ struct ToolListView: View {
                 filterTools(by: searchText)
             }
         } catch {
-            print("Fejl ved hentning af værktøj: \(error.localizedDescription)")
+            print("Fejl ved hentning af item: \(error.localizedDescription)")
         }
     }
 
@@ -278,7 +278,7 @@ struct ToolListView: View {
                 try await ToolHandler.shared.deleteTool(tool)
                 await fetchTools()
             } catch {
-                print("Error deleting tool: \(error.localizedDescription)")
+                print("Error deleting item: \(error.localizedDescription)")
             }
         }
     }

@@ -32,7 +32,7 @@ struct UserToolsView: View {
                 }
             }
         }
-        .navigationTitle("User's Tools")
+        .navigationTitle("User's Items")
         .task {
             await fetchTools()
         }

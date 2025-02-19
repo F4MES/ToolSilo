@@ -121,12 +121,12 @@ struct ProfileView: View {
                     
                     // Tools List
                     VStack(alignment: .leading, spacing: 15) {
-                        Text("Your Tools")
+                        Text("Your Items")
                             .font(.headline)
                             .padding(.horizontal)
                         
                         if userTools.isEmpty {
-                            Text("No tools available")
+                            Text("No Items available")
                                 .foregroundColor(.secondary)
                                 .padding()
                         } else {
@@ -198,7 +198,7 @@ struct ProfileView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Add") { addNewAssociation() }
             }
-            .alert("Delete Tool?", isPresented: $showDeleteConfirmation) {
+            .alert("Delete Item?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) { deleteTool() }
             } message: {
@@ -365,7 +365,7 @@ struct ProfileView: View {
                     userTools.remove(at: index)
                 }
             } catch {
-                print("Error deleting tool: \(error.localizedDescription)")
+                print("Error deleting item: \(error.localizedDescription)")
             }
         }
         toolToDelete = nil

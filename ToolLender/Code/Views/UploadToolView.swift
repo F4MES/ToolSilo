@@ -52,7 +52,7 @@ struct UploadToolView: View {
                     .padding(.top, 20)
                     
                     VStack(spacing: 15) {
-                        TextField("Tool Name", text: $toolName)
+                        TextField("Item Name", text: $toolName)
                             .padding()
                             .background(Color(.systemGray6))
                             .cornerRadius(10)
@@ -110,7 +110,7 @@ struct UploadToolView: View {
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
                                 Image(systemName: "icloud.and.arrow.up")
-                                Text("Upload Tool")
+                                Text("Upload")
                                     .fontWeight(.semibold)
                             }
                         }
@@ -172,7 +172,7 @@ struct UploadToolView: View {
     
     private func validateInputs() -> Bool {
         guard !toolName.isEmpty else {
-            errorMessage = "Please enter a tool name"
+            errorMessage = "Please enter a item name"
             return false
         }
         guard !toolDescription.isEmpty else {
@@ -213,8 +213,8 @@ struct UploadToolView: View {
         )
         
         DispatchQueue.main.async {
-            errorMessage = "Værktøj gemt succesfuldt!"
-            print("Værktøj gemt succesfuldt!")
+            errorMessage = "item gemt succesfuldt!"
+            print("item gemt succesfuldt!")
             print(savedTool)
         }
     }
