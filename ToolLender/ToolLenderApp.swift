@@ -7,15 +7,25 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         FirebaseApp.configure()
         
+        Task {
+            await configureFirestoreAsync()
+        }
+        
+        return true
+    }
+    
+    private func configureFirestoreAsync() async {
         let db = Firestore.firestore()
         let settings = db.settings
     
         settings.isPersistenceEnabled = true
         settings.cacheSizeBytes = FirestoreCacheSizeUnlimited
         
-        db.settings = settings
+        // Valider cache-indstillinger i baggrunden
+        print("Firestore cache enabled: \(settings.isPersistenceEnabled)")
+        print("Cache size: \(settings.cacheSizeBytes)")
         
-        return true
+        db.settings = settings
     }
 }
 
