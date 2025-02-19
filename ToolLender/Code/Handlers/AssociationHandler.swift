@@ -4,17 +4,23 @@ import Foundation
 /// Håndterer håndtering af ejerforeninger med Firestore offline persistence
 class AssociationHandler {
     static let shared = AssociationHandler()
-    private let db = Firestore.firestore()
+    private init() {}
     
     // MARK: - Public Methods
     
     /// Henter alle ejerforeninger med caching og offline support
-    func fetchAssociations(insertAllAtTop: Bool, useCache: Bool = true) async throws -> [String] {
+    func fetchAssociations(insertAllAtTop: Bool = true, useCache: Bool = true) async throws -> [String] {
         let source: FirestoreSource = useCache ? .cache : .server
         let snapshot = try await Firestore.firestore().collection("associations")
             .getDocuments(source: source)
         
-        return processSnapshot(snapshot, insertAllAtTop: insertAllAtTop)
+        var associations = snapshot.documents.compactMap { $0["name"] as? String }
+        
+        if insertAllAtTop {
+            associations.insert("All", at: 0)
+        }
+        
+        return associations
     }
     
     // MARK: - Create Operations
@@ -22,7 +28,7 @@ class AssociationHandler {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
         
-        let snapshot = try await db.collection("associations")
+        let snapshot = try await Firestore.firestore().collection("associations")
             .whereField("name", isEqualTo: trimmedName)
             .getDocuments()
         
@@ -30,24 +36,13 @@ class AssociationHandler {
             throw AssociationError.associationExists
         }
         
-        try await db.collection("associations").addDocument(data: [
+        try await Firestore.firestore().collection("associations").addDocument(data: [
             "name": trimmedName,
             "createdAt": FieldValue.serverTimestamp()
         ])
     }
     
     // MARK: - Private Helpers
-    
-    /// Bearbejder query snapshot og formaterer resultater
-    private func processSnapshot(_ snapshot: QuerySnapshot, insertAllAtTop: Bool) -> [String] {
-        var associations = snapshot.documents.compactMap { $0["name"] as? String }
-        
-        if insertAllAtTop && !associations.contains("All") {
-            associations.insert("All", at: 0)
-        }
-        
-        return associations
-    }
     
     func updateUserAssociation(userUID: String, newAssociation: String) async throws {
         let userRef = Firestore.firestore().collection("users").document(userUID)

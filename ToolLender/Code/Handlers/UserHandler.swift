@@ -10,25 +10,33 @@ class UserHandler {
 
     // MARK: - Hent Brugerdata
     /// Henter hele brugerens Firestore-dokument som en dictionary ([String: Any]).
-    func fetchUserData(userUID: String, useCache: Bool = true) async throws -> [String: Any]? {
+    func fetchUserData(userUID: String, useCache: Bool = true) async throws -> UserInfo {
         let source: FirestoreSource = useCache ? .cache : .server
         let document = try await Firestore.firestore().collection("users")
             .document(userUID)
             .getDocument(source: source)
         
-        return document.data()
+        let data = document.data() ?? [:]
+        return UserInfo(
+            id: document.documentID,
+            name: data["name"] as? String ?? "Bruger",
+            email: data["email"] as? String ?? "",
+            phoneNumber: data["phoneNumber"] as? String,
+            address: data["address"] as? String,
+            association: data["association"] as? String ?? "All"
+        )
     }
 
     /// Henter kun et brugernavn, hvis det findes.
-    func fetchUserName(userUID: String, useCache: Bool = true) async throws -> String? {
-        let data = try await fetchUserData(userUID: userUID, useCache: useCache)
-        return data?["name"] as? String
+    func fetchUserName(userUID: String, useCache: Bool = true) async throws -> String {
+        let userInfo = try await fetchUserData(userUID: userUID, useCache: useCache)
+        return userInfo.name
     }
 
     /// Henter brugerens association. Returnerer "All", hvis feltet mangler.
     func fetchUserAssociation(userUID: String, useCache: Bool = true) async throws -> String {
-        let data = try await fetchUserData(userUID: userUID, useCache: useCache)
-        return data?["association"] as? String ?? "All"
+        let userInfo = try await fetchUserData(userUID: userUID, useCache: useCache)
+        return userInfo.association
     }
 
     // MARK: - Opdatering

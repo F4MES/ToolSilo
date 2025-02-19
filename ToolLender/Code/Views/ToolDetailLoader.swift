@@ -26,13 +26,13 @@ struct ToolDetailLoader: View {
     private func fetchOwnerInfo() async {
         do {
             // Brug UserHandler til at hente brugerdata med cache-support
-            let userData = try await UserHandler.shared.fetchUserData(userUID: tool.ownerUID, useCache: true)
+            let userInfo = try await UserHandler.shared.fetchUserData(userUID: tool.ownerUID, useCache: true)
             
             // Opdater UI med brugerdata
-            ownerName = userData?["name"] as? String ?? "Unknown"
-            ownerEmail = userData?["email"] as? String ?? "Unknown"
-            ownerPhoneNumber = userData?["phoneNumber"] as? String ?? "Unknown"
-            ownerAddress = userData?["address"] as? String ?? "Unknown"
+            ownerName = userInfo.name
+            ownerEmail = userInfo.email
+            ownerPhoneNumber = userInfo.phoneNumber ?? "Unknown"
+            ownerAddress = userInfo.address ?? "Unknown"
             
             print("Fetched owner info: \(ownerName), \(ownerEmail), \(ownerPhoneNumber), \(ownerAddress)")
         } catch {

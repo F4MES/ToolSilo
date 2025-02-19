@@ -11,22 +11,23 @@ class ToolHandler {
     // MARK: - Hent Værktøjer
     /// Henter alle værktøjer i 'tools' collection, evt. sorteret efter timestamp.
     func fetchAllTools(useCache: Bool = true) async throws -> [Tool] {
-        let source: FirestoreSource = useCache ? .default : .server
+        let source: FirestoreSource = useCache ? .cache : .server
         let snapshot = try await Firestore.firestore().collection("tools")
             .order(by: "timestamp", descending: true)
             .getDocuments(source: source)
 
         return snapshot.documents.map { doc in
-            Tool(
+            let data = doc.data()
+            return Tool(
                 id: doc.documentID,
-                name: doc["name"] as? String ?? "",
-                description: doc["description"] as? String ?? "",
-                imageURL: doc["imageURL"] as? String,
-                ownerUID: doc["ownerUID"] as? String ?? "Unknown",
-                pricePerDay: doc["pricePerDay"] as? Double,
-                category: doc["category"] as? String ?? "",
-                isOnHold: doc["isOnHold"] as? Bool ?? false,
-                timestamp: (doc["timestamp"] as? Timestamp)?.dateValue()
+                name: data["name"] as? String ?? "",
+                description: data["description"] as? String ?? "",
+                imageURL: data["imageURL"] as? String,
+                ownerUID: data["ownerUID"] as? String ?? "",
+                pricePerDay: data["pricePerDay"] as? Double,
+                category: data["category"] as? String ?? "",
+                isOnHold: data["isOnHold"] as? Bool ?? false,
+                timestamp: (data["timestamp"] as? Timestamp)?.dateValue()
             )
         }
     }
@@ -39,34 +40,35 @@ class ToolHandler {
             .getDocuments(source: source)
         
         return snapshot.documents.map { doc in
-            Tool(
+            let data = doc.data()
+            return Tool(
                 id: doc.documentID,
-                name: doc["name"] as? String ?? "",
-                description: doc["description"] as? String ?? "",
-                imageURL: doc["imageURL"] as? String,
-                ownerUID: doc["ownerUID"] as? String ?? "Unknown",
-                pricePerDay: doc["pricePerDay"] as? Double,
-                category: doc["category"] as? String ?? "",
-                isOnHold: doc["isOnHold"] as? Bool ?? false,
-                timestamp: (doc["timestamp"] as? Timestamp)?.dateValue()
+                name: data["name"] as? String ?? "",
+                description: data["description"] as? String ?? "",
+                imageURL: data["imageURL"] as? String,
+                ownerUID: data["ownerUID"] as? String ?? "",
+                pricePerDay: data["pricePerDay"] as? Double,
+                category: data["category"] as? String ?? "",
+                isOnHold: data["isOnHold"] as? Bool ?? false,
+                timestamp: (data["timestamp"] as? Timestamp)?.dateValue()
             )
         }
     }
 
     // MARK: - Opdater
     /// Toggler 'isOnHold' for det angivne værktøj i Firestore.
-    func toggleHoldStatus(for tool: Tool, useCache: Bool = true) async throws {
-        let db = Firestore.firestore()
-        try await db.collection("tools").document(tool.id).updateData([
-            "isOnHold": !tool.isOnHold
-        ])
+    func toggleHoldStatus(for tool: Tool) async throws {
+        try await Firestore.firestore().collection("tools")
+            .document(tool.id)
+            .updateData(["isOnHold": !tool.isOnHold])
     }
 
     // MARK: - Slet
     /// Sletter et specifikt værktøj i Firestore.
     func deleteTool(_ tool: Tool) async throws {
-        let db = Firestore.firestore()
-        try await db.collection("tools").document(tool.id).delete()
+        try await Firestore.firestore().collection("tools")
+            .document(tool.id)
+            .delete()
     }
 
     // MARK: - Create Operations
@@ -108,31 +110,14 @@ class ToolHandler {
             throw NSError(domain: "ToolError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Document data not found"])
         }
         
-        return try decodeTool(from: data, documentID: documentID)
-    }
-
-    private func decodeTool(from data: [String: Any], documentID: String) throws -> Tool {
-        guard 
-            let name = data["name"] as? String,
-            let description = data["description"] as? String,
-            let ownerUID = data["ownerUID"] as? String,
-            let category = data["category"] as? String
-        else {
-            throw NSError(
-                domain: "ToolError", 
-                code: 1, 
-                userInfo: [NSLocalizedDescriptionKey: "Invalid tool data format"]
-            )
-        }
-        
         return Tool(
             id: documentID,
-            name: name,
-            description: description,
+            name: data["name"] as? String ?? "",
+            description: data["description"] as? String ?? "",
             imageURL: data["imageURL"] as? String,
-            ownerUID: ownerUID,
+            ownerUID: data["ownerUID"] as? String ?? "",
             pricePerDay: data["pricePerDay"] as? Double,
-            category: category,
+            category: data["category"] as? String ?? "",
             isOnHold: data["isOnHold"] as? Bool ?? false,
             timestamp: data["timestamp"] as? Date
         )

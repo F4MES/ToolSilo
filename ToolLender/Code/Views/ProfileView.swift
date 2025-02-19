@@ -304,21 +304,21 @@ struct ProfileView: View {
         guard !uid.isEmpty else { return }
 
         do {
-            // Første forsøg: Cache-only
-            let userData = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: true)
+            // Cache-only
+            let userInfo = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: true)
             await MainActor.run {
-                selectedAssociation = userData?["association"] as? String ?? "All"
-                userName = userData?["name"] as? String ?? "Bruger"
+                selectedAssociation = userInfo.association
+                userName = userInfo.name
                 cachedUserUID = uid
             }
         } catch {
             print("Cache miss: \(error.localizedDescription)")
             do {
-                // Andet forsøg: Server med cache-fallback
-                let userData = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: false)
+                // Server med cache-fallback
+                let userInfo = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: false)
                 await MainActor.run {
-                    selectedAssociation = userData?["association"] as? String ?? "All"
-                    userName = userData?["name"] as? String ?? "Bruger"
+                    selectedAssociation = userInfo.association
+                    userName = userInfo.name
                     cachedUserUID = uid
                 }
             } catch {
