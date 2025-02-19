@@ -10,7 +10,7 @@ class AssociationHandler {
     
     /// Henter alle ejerforeninger med caching og offline support
     func fetchAssociations(insertAllAtTop: Bool, useCache: Bool = true) async throws -> [String] {
-        let source: FirestoreSource = useCache ? .default : .server
+        let source: FirestoreSource = useCache ? .cache : .server
         let snapshot = try await Firestore.firestore().collection("associations")
             .getDocuments(source: source)
         

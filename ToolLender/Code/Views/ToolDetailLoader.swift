@@ -24,22 +24,19 @@ struct ToolDetailLoader: View {
 
     // Henter ejeroplysninger fra Firestore
     private func fetchOwnerInfo() async {
-        let db = Firestore.firestore()
         do {
-            let document = try await db.collection("users").document(tool.ownerUID).getDocument()
-            guard let data = document.data() else {
-                print("No data found for UID: \(tool.ownerUID)") // Logger, hvis der ikke findes data
-                return
-            }
-
-            ownerName = data["name"] as? String ?? "Unknown"
-            ownerEmail = data["email"] as? String ?? "Unknown"
-            ownerPhoneNumber = data["phoneNumber"] as? String ?? "Unknown"
-            ownerAddress = data["address"] as? String ?? "Unknown"
-
+            // Brug UserHandler til at hente brugerdata med cache-support
+            let userData = try await UserHandler.shared.fetchUserData(userUID: tool.ownerUID, useCache: true)
+            
+            // Opdater UI med brugerdata
+            ownerName = userData?["name"] as? String ?? "Unknown"
+            ownerEmail = userData?["email"] as? String ?? "Unknown"
+            ownerPhoneNumber = userData?["phoneNumber"] as? String ?? "Unknown"
+            ownerAddress = userData?["address"] as? String ?? "Unknown"
+            
             print("Fetched owner info: \(ownerName), \(ownerEmail), \(ownerPhoneNumber), \(ownerAddress)")
         } catch {
-            print("Error fetching owner info: \(error.localizedDescription)") // Logger fejl ved hentning
+            print("Error fetching owner info: \(error.localizedDescription)")
         }
     }
 }

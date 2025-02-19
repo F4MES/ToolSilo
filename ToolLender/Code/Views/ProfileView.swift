@@ -306,28 +306,27 @@ struct ProfileView: View {
         do {
             // Første forsøg: Cache-only
             let userData = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: true)
-            await updateUI(with: userData, uid: uid)
-            
+            await MainActor.run {
+                selectedAssociation = userData?["association"] as? String ?? "All"
+                userName = userData?["name"] as? String ?? "Bruger"
+                cachedUserUID = uid
+            }
         } catch {
             print("Cache miss: \(error.localizedDescription)")
             do {
                 // Andet forsøg: Server med cache-fallback
                 let userData = try await UserHandler.shared.fetchUserData(userUID: uid, useCache: false)
-                await updateUI(with: userData, uid: uid)
+                await MainActor.run {
+                    selectedAssociation = userData?["association"] as? String ?? "All"
+                    userName = userData?["name"] as? String ?? "Bruger"
+                    cachedUserUID = uid
+                }
             } catch {
                 print("Server error: \(error.localizedDescription)")
                 await MainActor.run {
                     userName = "Bruger"
                 }
             }
-        }
-    }
-
-    private func updateUI(with userData: [String: Any]?, uid: String) async {
-        await MainActor.run {
-            selectedAssociation = userData?["association"] as? String ?? "All"
-            userName = userData?["name"] as? String ?? "Bruger"
-            cachedUserUID = uid
         }
     }
 
@@ -346,10 +345,22 @@ struct ProfileView: View {
     private func fetchUserTools() async {
         guard let userUID = Auth.auth().currentUser?.uid else { return }
         do {
-            // Hent altid fra cache først, opdater automatisk ved forbindelse
-            self.userTools = try await ToolHandler.shared.fetchToolsByOwner(ownerUID: userUID)
+            // Første forsøg: Cache-only
+            let tools = try await ToolHandler.shared.fetchToolsByOwner(ownerUID: userUID, useCache: true)
+            await MainActor.run {
+                self.userTools = tools
+            }
         } catch {
-            print("Error fetching user tools: \(error.localizedDescription)")
+            print("Cache miss for tools: \(error.localizedDescription)")
+            do {
+                // Andet forsøg: Server
+                let tools = try await ToolHandler.shared.fetchToolsByOwner(ownerUID: userUID, useCache: false)
+                await MainActor.run {
+                    self.userTools = tools
+                }
+            } catch {
+                print("Server error for tools: \(error.localizedDescription)")
+            }
         }
     }
 

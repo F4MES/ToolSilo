@@ -33,14 +33,23 @@ class ToolHandler {
 
     /// Henter værktøjer fra Firestore, hvor feltet "ownerUID" matcher den angivne UID.
     func fetchToolsByOwner(ownerUID: String, useCache: Bool = true) async throws -> [Tool] {
-        let source: FirestoreSource = useCache ? .default : .server
+        let source: FirestoreSource = useCache ? .cache : .server
         let snapshot = try await Firestore.firestore().collection("tools")
             .whereField("ownerUID", isEqualTo: ownerUID)
             .getDocuments(source: source)
         
-        return try snapshot.documents.map { doc in
-            let data = doc.data()
-            return try decodeTool(from: data, documentID: doc.documentID)
+        return snapshot.documents.map { doc in
+            Tool(
+                id: doc.documentID,
+                name: doc["name"] as? String ?? "",
+                description: doc["description"] as? String ?? "",
+                imageURL: doc["imageURL"] as? String,
+                ownerUID: doc["ownerUID"] as? String ?? "Unknown",
+                pricePerDay: doc["pricePerDay"] as? Double,
+                category: doc["category"] as? String ?? "",
+                isOnHold: doc["isOnHold"] as? Bool ?? false,
+                timestamp: (doc["timestamp"] as? Timestamp)?.dateValue()
+            )
         }
     }
 
