@@ -30,7 +30,7 @@ class UserHandler {
                     return UserInfo(
                         id: cachedDoc.documentID,
                         name: data["name"] as? String ?? "Bruger",
-                        email: data["email"] as? String ?? "",
+                        email: data["email"] as? String ?? "Email not available",
                         phoneNumber: data["phoneNumber"] as? String,
                         address: data["address"] as? String,
                         association: data["association"] as? String ?? "All"
@@ -51,7 +51,7 @@ class UserHandler {
             return UserInfo(
                 id: document.documentID,
                 name: data["name"] as? String ?? "Bruger",
-                email: data["email"] as? String ?? "",
+                email: data["email"] as? String ?? "Email not available",
                 phoneNumber: data["phoneNumber"] as? String,
                 address: data["address"] as? String,
                 association: data["association"] as? String ?? "All"

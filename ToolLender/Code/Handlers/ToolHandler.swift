@@ -87,12 +87,12 @@ class ToolHandler {
                     let data = doc.data()
                     return Tool(
                         id: doc.documentID,
-                        name: data["name"] as? String ?? "",
-                        description: data["description"] as? String ?? "",
+                        name: data["name"] as? String ?? "Name not available",
+                        description: data["description"] as? String ?? "Description not available",
                         imageURL: data["imageURL"] as? String,
-                        ownerUID: data["ownerUID"] as? String ?? "",
+                        ownerUID: data["ownerUID"] as? String ?? "Owner UID not available",
                         pricePerDay: data["pricePerDay"] as? Double,
-                        category: data["category"] as? String ?? "",
+                        category: data["category"] as? String ?? "Category not available",
                         isOnHold: data["isOnHold"] as? Bool ?? false,
                         timestamp: (data["timestamp"] as? Timestamp)?.dateValue()
                     )
@@ -109,12 +109,12 @@ class ToolHandler {
             let data = doc.data()
             return Tool(
                 id: doc.documentID,
-                name: data["name"] as? String ?? "",
-                description: data["description"] as? String ?? "",
+                name: data["name"] as? String ?? "Name not available",
+                description: data["description"] as? String ?? "Description not available",
                 imageURL: data["imageURL"] as? String,
-                ownerUID: data["ownerUID"] as? String ?? "",
+                ownerUID: data["ownerUID"] as? String ?? "Owner UID not available",
                 pricePerDay: data["pricePerDay"] as? Double,
-                category: data["category"] as? String ?? "",
+                category: data["category"] as? String ?? "Category not available",
                 isOnHold: data["isOnHold"] as? Bool ?? false,
                 timestamp: (data["timestamp"] as? Timestamp)?.dateValue()
             )
@@ -165,6 +165,11 @@ class ToolHandler {
         return try await fetchTool(documentID: toolRef.documentID)
     }
 
+
+
+
+
+    // Ikke brugt - for nu
     /// Henter et specifikt værktøj fra Firestore
     func fetchTool(documentID: String, useCache: Bool = true) async throws -> Tool {
         if useCache {
@@ -176,12 +181,12 @@ class ToolHandler {
             if let data = cachedDoc?.data() {
                 return Tool(
                     id: documentID,
-                    name: data["name"] as? String ?? "",
-                    description: data["description"] as? String ?? "",
+                    name: data["name"] as? String ?? "Name not available",
+                    description: data["description"] as? String ?? "Description not available",
                     imageURL: data["imageURL"] as? String,
-                    ownerUID: data["ownerUID"] as? String ?? "",
+                    ownerUID: data["ownerUID"] as? String ?? "Owner UID not available",
                     pricePerDay: data["pricePerDay"] as? Double,
-                    category: data["category"] as? String ?? "",
+                    category: data["category"] as? String ?? "Category not available",
                     isOnHold: data["isOnHold"] as? Bool ?? false,
                     timestamp: data["timestamp"] as? Date
                 )
@@ -201,12 +206,12 @@ class ToolHandler {
         // Data fra serveren bliver automatisk gemt i cachen til næste gang
         return Tool(
             id: documentID,
-            name: data["name"] as? String ?? "",
-            description: data["description"] as? String ?? "",
+            name: data["name"] as? String ?? "Name not available",
+            description: data["description"] as? String ?? "Description not available",
             imageURL: data["imageURL"] as? String,
-            ownerUID: data["ownerUID"] as? String ?? "",
+            ownerUID: data["ownerUID"] as? String ?? "Owner UID not available",
             pricePerDay: data["pricePerDay"] as? Double,
-            category: data["category"] as? String ?? "",
+            category: data["category"] as? String ?? "Category not available",
             isOnHold: data["isOnHold"] as? Bool ?? false,
             timestamp: data["timestamp"] as? Date
         )
